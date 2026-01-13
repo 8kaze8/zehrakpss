@@ -7,6 +7,7 @@ import { useMemo } from "react";
 import { parseISO, format } from "date-fns";
 import type { TodayTask, RoutineTask } from "@/types";
 import { studyPlan } from "@/data/study-plan";
+import { useStudyProgressContext } from "@/context/StudyProgressContext";
 
 /**
  * Belirli bir tarih için görevleri getir
@@ -14,11 +15,13 @@ import { studyPlan } from "@/data/study-plan";
 export function useDailyTasks(date: Date | string) {
   const targetDate = typeof date === "string" ? parseISO(date) : date;
   const dateISO = format(targetDate, "yyyy-MM-dd");
+  const { getCustomTasks, isTaskCompleted } = useStudyProgressContext();
 
   // Bugünün görevlerini hesapla
   const tasks = useMemo(() => {
     const todayTasks: TodayTask[] = [];
     const routineTasks: RoutineTask[] = [];
+    const customTasks = getCustomTasks(date);
 
     let foundWeek = false;
 
@@ -136,6 +139,20 @@ export function useDailyTasks(date: Date | string) {
       }
     }
 
+    // Custom tasks'ları ekle
+    customTasks.forEach((customTask) => {
+      todayTasks.push({
+        id: customTask.id,
+        subject: customTask.subject,
+        title: customTask.title,
+        description: customTask.description,
+        date: customTask.date,
+        type: customTask.type,
+        completed: isTaskCompleted(customTask.id, date),
+        timeSlot: customTask.timeSlot,
+      });
+    });
+
     // Eğer bugünün tarihi plan aralığında değilse, ilk haftanın görevlerini göster (test için)
     if (!foundWeek && studyPlan.months.length > 0 && studyPlan.months[0].weeks.length > 0) {
       const firstWeek = studyPlan.months[0].weeks[0];
@@ -172,7 +189,7 @@ export function useDailyTasks(date: Date | string) {
       studyTasks: todayTasks,
       routineTasks,
     };
-  }, [targetDate, dateISO]);
+  }, [targetDate, dateISO, getCustomTasks, isTaskCompleted]);
 
   return tasks;
 }

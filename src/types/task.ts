@@ -31,3 +31,18 @@ export interface RoutineTask {
   count: number;
   completed: boolean;
 }
+
+export interface CustomTask {
+  id: string;
+  title: string;
+  subject: Subject;
+  description?: string;
+  date: string; // ISO date (YYYY-MM-DD)
+  timeSlot?: {
+    start: string; // HH:mm
+    end: string;
+  };
+  type: TaskType;
+  createdAt: string; // ISO timestamp
+  completed: boolean;
+}

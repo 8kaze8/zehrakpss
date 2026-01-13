@@ -15,12 +15,15 @@ import { TodayTasksList } from "@/components/calendar/TodayTasksList";
 import { WeekendGoalsCard } from "@/components/calendar/WeekendGoalsCard";
 import { FloatingActionButton } from "@/components/layout/FloatingActionButton";
 import { AddTaskModal } from "@/components/shared/AddTaskModal";
+import { useStudyProgressContext } from "@/context/StudyProgressContext";
 import { getWeekId } from "@/utils/date";
 
 export default function CalendarPage() {
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
+
+  const { addCustomTask } = useStudyProgressContext();
 
   const handleAddTask = (task: {
     title: string;
@@ -30,8 +33,14 @@ export default function CalendarPage() {
     timeSlot?: { start: string; end: string };
     type: "routine" | "study" | "speed" | "exam";
   }) => {
-    // TODO: Task'ı study plan'a ekle veya localStorage'a kaydet
-    console.log("New task added:", task);
+    addCustomTask({
+      title: task.title,
+      subject: task.subject,
+      description: task.description,
+      date: task.date,
+      timeSlot: task.timeSlot,
+      type: task.type,
+    });
   };
 
   const handleWeekChange = (direction: "prev" | "next") => {

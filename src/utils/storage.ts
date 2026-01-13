@@ -78,6 +78,7 @@ export function initializeProgress(): UserProgress {
     daily: {},
     weekly: {},
     monthly: {},
+    customTasks: [],
   };
 }
 

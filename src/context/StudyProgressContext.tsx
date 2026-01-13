@@ -15,6 +15,7 @@ import type {
   MonthlyProgress,
   Month,
 } from "@/types";
+import type { CustomTask, Subject } from "@/types/task";
 
 interface StudyProgressState {
   progress: UserProgress;
@@ -25,6 +26,9 @@ type StudyProgressAction =
   | { type: "LOAD_PROGRESS"; payload: UserProgress }
   | { type: "COMPLETE_TASK"; payload: { taskId: string; date: string } }
   | { type: "UNCOMPLETE_TASK"; payload: { taskId: string; date: string } }
+  | { type: "ADD_CUSTOM_TASK"; payload: CustomTask }
+  | { type: "DELETE_CUSTOM_TASK"; payload: string }
+  | { type: "TOGGLE_CUSTOM_TASK"; payload: { taskId: string; date: string } }
   | { type: "SET_LOADING"; payload: boolean };
 
 const initialState: StudyProgressState = {
@@ -32,6 +36,7 @@ const initialState: StudyProgressState = {
     daily: {},
     weekly: {},
     monthly: {},
+    customTasks: [],
   },
   isLoading: true,
 };
@@ -109,6 +114,50 @@ function progressReducer(
       };
     }
 
+    case "ADD_CUSTOM_TASK": {
+      const newProgress = { ...state.progress };
+      const customTasks = [...(newProgress.customTasks || []), action.payload];
+      return {
+        ...state,
+        progress: {
+          ...newProgress,
+          customTasks,
+        },
+      };
+    }
+
+    case "DELETE_CUSTOM_TASK": {
+      const newProgress = { ...state.progress };
+      const customTasks = (newProgress.customTasks || []).filter(
+        (t) => t.id !== action.payload
+      );
+      return {
+        ...state,
+        progress: {
+          ...newProgress,
+          customTasks,
+        },
+      };
+    }
+
+    case "TOGGLE_CUSTOM_TASK": {
+      const { taskId, date } = action.payload;
+      const newProgress = { ...state.progress };
+      const customTasks = (newProgress.customTasks || []).map((task) => {
+        if (task.id === taskId && task.date === date) {
+          return { ...task, completed: !task.completed };
+        }
+        return task;
+      });
+      return {
+        ...state,
+        progress: {
+          ...newProgress,
+          customTasks,
+        },
+      };
+    }
+
     case "SET_LOADING":
       return {
         ...state,
@@ -128,6 +177,9 @@ interface StudyProgressContextValue {
   isTaskCompleted: (taskId: string, date?: Date | string) => boolean;
   getWeeklyProgress: (weekId: string) => WeeklyProgress;
   getMonthlyProgress: (month: Month, year: number) => MonthlyProgress;
+  addCustomTask: (task: Omit<CustomTask, "id" | "createdAt" | "completed">) => void;
+  deleteCustomTask: (taskId: string) => void;
+  getCustomTasks: (date?: Date | string) => CustomTask[];
 }
 
 const StudyProgressContext = createContext<StudyProgressContextValue | undefined>(undefined);
@@ -222,6 +274,34 @@ export function StudyProgressProvider({ children }: { children: React.ReactNode 
     [state.progress]
   );
 
+  const addCustomTask = useCallback(
+    (task: Omit<CustomTask, "id" | "createdAt" | "completed">) => {
+      const newTask: CustomTask = {
+        ...task,
+        id: `custom-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        createdAt: new Date().toISOString(),
+        completed: false,
+      };
+      dispatch({ type: "ADD_CUSTOM_TASK", payload: newTask });
+    },
+    []
+  );
+
+  const deleteCustomTask = useCallback((taskId: string) => {
+    dispatch({ type: "DELETE_CUSTOM_TASK", payload: taskId });
+  }, []);
+
+  const getCustomTasks = useCallback(
+    (date?: Date | string): CustomTask[] => {
+      const customTasks = state.progress.customTasks || [];
+      if (!date) return customTasks;
+
+      const dateISO = toISODate(date);
+      return customTasks.filter((task) => task.date === dateISO);
+    },
+    [state.progress]
+  );
+
   const value: StudyProgressContextValue = {
     progress: state.progress,
     isLoading: state.isLoading,
@@ -230,6 +310,9 @@ export function StudyProgressProvider({ children }: { children: React.ReactNode 
     isTaskCompleted,
     getWeeklyProgress,
     getMonthlyProgress,
+    addCustomTask,
+    deleteCustomTask,
+    getCustomTasks,
   };
 
   return (

@@ -13,9 +13,12 @@ import { DailyRoutineCard } from "@/components/dashboard/DailyRoutineCard";
 import { SubjectFocusCard } from "@/components/dashboard/SubjectFocusCard";
 import { FloatingActionButton } from "@/components/layout/FloatingActionButton";
 import { AddTaskModal } from "@/components/shared/AddTaskModal";
+import { useStudyProgressContext } from "@/context/StudyProgressContext";
 
 export default function DashboardPage() {
   const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
+
+  const { addCustomTask } = useStudyProgressContext();
 
   const handleAddTask = (task: {
     title: string;
@@ -25,10 +28,14 @@ export default function DashboardPage() {
     timeSlot?: { start: string; end: string };
     type: "routine" | "study" | "speed" | "exam";
   }) => {
-    // TODO: Task'ı study plan'a ekle veya localStorage'a kaydet
-    console.log("New task added:", task);
-    // Şimdilik sadece console'a yazdırıyoruz
-    // Gerçek implementasyonda study plan'a eklenmeli veya ayrı bir custom tasks listesi tutulmalı
+    addCustomTask({
+      title: task.title,
+      subject: task.subject,
+      description: task.description,
+      date: task.date,
+      timeSlot: task.timeSlot,
+      type: task.type,
+    });
   };
 
   return (
