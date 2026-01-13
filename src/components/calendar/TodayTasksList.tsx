@@ -16,7 +16,7 @@ interface TodayTasksListProps {
 
 export function TodayTasksList({ date }: TodayTasksListProps) {
   const { studyTasks } = useDailyTasks(date);
-  const { isTaskCompleted, completeTask, uncompleteTask } =
+  const { isTaskCompleted, completeTask, uncompleteTask, deleteCustomTask } =
     useStudyProgressContext();
 
   const handleToggle = (taskId: string) => {
@@ -26,6 +26,10 @@ export function TodayTasksList({ date }: TodayTasksListProps) {
     } else {
       completeTask(taskId, date);
     }
+  };
+
+  const handleDelete = (taskId: string) => {
+    deleteCustomTask(taskId);
   };
 
   if (studyTasks.length === 0) {
@@ -49,6 +53,7 @@ export function TodayTasksList({ date }: TodayTasksListProps) {
           task={task}
           completed={isTaskCompleted(task.id, date)}
           onToggle={handleToggle}
+          onDelete={task.id.startsWith("custom-") ? handleDelete : undefined}
         />
       ))}
     </div>

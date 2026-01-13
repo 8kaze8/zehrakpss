@@ -15,7 +15,7 @@ import { TimerModal } from "@/components/timer/TimerModal";
 export function DailyRoutineCard() {
   const today = new Date();
   const { studyTasks, routineTasks } = useDailyTasks(today);
-  const { isTaskCompleted, completeTask, uncompleteTask } = useStudyProgressContext();
+  const { isTaskCompleted, completeTask, uncompleteTask, deleteCustomTask } = useStudyProgressContext();
   const [timerOpen, setTimerOpen] = useState(false);
   const [timerTask, setTimerTask] = useState<{ type: string; title: string } | null>(null);
 
@@ -34,6 +34,10 @@ export function DailyRoutineCard() {
       title: taskLabel,
     });
     setTimerOpen(true);
+  };
+
+  const handleDelete = (taskId: string) => {
+    deleteCustomTask(taskId);
   };
 
   // Rutin görevleri formatla
@@ -58,7 +62,7 @@ export function DailyRoutineCard() {
             Bugünün Rutini
           </h3>
           <span className="text-xs font-medium text-[#00695c]/70 dark:text-[#4db6ac]/70">
-            {formattedRoutineTasks.length} Görev
+            {formattedRoutineTasks.length + studyTasks.filter((t) => t.id.startsWith("custom-")).length} Görev
           </span>
         </div>
         <div className="flex flex-col gap-3">
@@ -70,9 +74,25 @@ export function DailyRoutineCard() {
               completed={isTaskCompleted(task.id, today)}
               onToggle={handleToggle}
               onStart={task.showPlayButton ? (id) => handleStart(id, task.label) : undefined}
+              onDelete={task.id.startsWith("custom-") ? handleDelete : undefined}
               showPlayButton={task.showPlayButton}
+              isCustom={task.id.startsWith("custom-")}
             />
           ))}
+          {/* Custom study tasks */}
+          {studyTasks
+            .filter((task) => task.id.startsWith("custom-"))
+            .map((task) => (
+              <TaskItem
+                key={task.id}
+                id={task.id}
+                label={task.title}
+                completed={isTaskCompleted(task.id, today)}
+                onToggle={handleToggle}
+                onDelete={handleDelete}
+                isCustom={true}
+              />
+            ))}
         </div>
       </Card>
 
