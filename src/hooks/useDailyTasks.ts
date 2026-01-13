@@ -15,7 +15,7 @@ import { useStudyProgressContext } from "@/context/StudyProgressContext";
 export function useDailyTasks(date: Date | string) {
   const targetDate = typeof date === "string" ? parseISO(date) : date;
   const dateISO = format(targetDate, "yyyy-MM-dd");
-  const { getCustomTasks, isTaskCompleted } = useStudyProgressContext();
+  const { getCustomTasks, isTaskCompleted, progress } = useStudyProgressContext();
 
   // Bugünün görevlerini hesapla
   const tasks = useMemo(() => {
@@ -149,14 +149,16 @@ export function useDailyTasks(date: Date | string) {
         date: customTask.date,
         type: customTask.type,
         completed: isTaskCompleted(customTask.id, targetDate),
+        
         timeSlot: customTask.timeSlot,
       });
     });
 
-    // Eğer bugünün tarihi plan aralığında değilse, ilk haftanın görevlerini göster (test için)
+    // Eğer bugünün tarihi plan aralığında değilse, ilk haftanın görevlerini göster
     if (!foundWeek && studyPlan.months.length > 0 && studyPlan.months[0].weeks.length > 0) {
       const firstWeek = studyPlan.months[0].weeks[0];
       
+      // Rutin görevler
       if (firstWeek.dailyRoutine.paragraphs > 0) {
         routineTasks.push({
           id: `routine-paragraph-${dateISO}`,
@@ -183,13 +185,83 @@ export function useDailyTasks(date: Date | string) {
           completed: isTaskCompleted(`routine-speed-${dateISO}`, targetDate),
         });
       }
+
+      // Ders görevleri
+      if (firstWeek.subjects.tarih) {
+        todayTasks.push({
+          id: `task-tarih-${dateISO}`,
+          subject: "TARİH",
+          title: firstWeek.subjects.tarih,
+          description: "Soru bankası çalışması",
+          date: dateISO,
+          type: "study",
+          completed: isTaskCompleted(`task-tarih-${dateISO}`, targetDate),
+          timeSlot: {
+            start: "14:00",
+            end: "15:30",
+          },
+        });
+      }
+
+      if (firstWeek.subjects.cografya) {
+        todayTasks.push({
+          id: `task-cografya-${dateISO}`,
+          subject: "COĞRAFYA",
+          title: firstWeek.subjects.cografya,
+          description: "Konu tekrarı",
+          date: dateISO,
+          type: "study",
+          completed: isTaskCompleted(`task-cografya-${dateISO}`, targetDate),
+          timeSlot: {
+            start: "16:00",
+            end: "17:30",
+          },
+        });
+      }
+
+      if (firstWeek.subjects.matematik) {
+        todayTasks.push({
+          id: `task-matematik-${dateISO}`,
+          subject: "MATEMATİK",
+          title: firstWeek.subjects.matematik,
+          description: "Soru çözümü",
+          date: dateISO,
+          type: "study",
+          completed: isTaskCompleted(`task-matematik-${dateISO}`, targetDate),
+          timeSlot: {
+            start: "19:00",
+            end: "20:00",
+          },
+        });
+      }
+
+      if (firstWeek.subjects.turkce) {
+        todayTasks.push({
+          id: `task-turkce-${dateISO}`,
+          subject: "TÜRKÇE",
+          title: firstWeek.subjects.turkce,
+          description: firstWeek.dailyRoutine.speedQuestions > 0 
+            ? `${firstWeek.dailyRoutine.speedQuestions} soru - Süreli çözüm`
+            : "Paragraf çalışması",
+          date: dateISO,
+          type: firstWeek.dailyRoutine.speedQuestions > 0 ? "speed" : "study",
+          completed: isTaskCompleted(`task-turkce-${dateISO}`, targetDate),
+          requiresTimer: firstWeek.dailyRoutine.speedQuestions > 0,
+          timerDuration: firstWeek.dailyRoutine.speedQuestions > 0 ? 900 : undefined,
+          timeSlot: {
+            start: "19:00",
+            end: "20:00",
+          },
+        });
+      }
     }
 
     return {
       studyTasks: todayTasks,
       routineTasks,
     };
-  }, [targetDate, dateISO, getCustomTasks, isTaskCompleted]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetDate, dateISO, getCustomTasks, isTaskCompleted, progress.daily]);
 
   return tasks;
 }

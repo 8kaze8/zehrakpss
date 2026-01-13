@@ -26,8 +26,16 @@ export function StudyTaskCard({
   onDelete,
 }: StudyTaskCardProps) {
   const [showConfirm, setShowConfirm] = useState(false);
-  const colors = SUBJECT_COLORS[task.subject];
-  const icon = SUBJECT_ICONS[task.subject];
+  
+  // RUTIN için varsayılan renkler
+  const defaultColors = {
+    bg: "bg-gray-50 dark:bg-gray-800",
+    text: "text-gray-600 dark:text-gray-300",
+    border: "border-gray-200 dark:border-gray-700",
+  };
+  
+  const colors = SUBJECT_COLORS[task.subject as keyof typeof SUBJECT_COLORS] || defaultColors;
+  const icon = SUBJECT_ICONS[task.subject as keyof typeof SUBJECT_ICONS] || "checklist";
   const isCustomTask = task.id.startsWith("custom-");
 
   return (

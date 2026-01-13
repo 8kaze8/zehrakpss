@@ -38,27 +38,101 @@ export function calculateMonthlyProgress(
   }
 
   // O ay için toplam soru sayısını hesapla
-  // Her hafta için: Tarih (27), Coğrafya (18), Matematik (30), Türkçe (varsayılan 25)
+  // Her hafta için günlük rutin: Paragraf + Problem + Hız
+  // Her hafta için ders soruları: Tarih (27), Coğrafya (18), Matematik (30), Türkçe (varsayılan 25)
   let totalQuestions = 0;
   let solvedQuestions = 0;
 
   monthlyPlan.weeks.forEach((week) => {
-    // Her hafta için soru sayısı
-    const weekQuestions = 27 + 18 + 30 + 25; // Tarih + Coğrafya + Matematik + Türkçe
-    totalQuestions += weekQuestions;
-
-    // O hafta için tamamlanan görevleri say
     const weekStart = parseISO(week.dateRange.start);
     const weekEnd = parseISO(week.dateRange.end);
+    
+    // Hafta içindeki gün sayısını hesapla
+    const daysInWeek = Math.ceil((weekEnd.getTime() - weekStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    
+    // Günlük rutin sorular (her gün)
+    const dailyRoutineQuestions = 
+      (week.dailyRoutine.paragraphs || 0) + 
+      (week.dailyRoutine.problems || 0) + 
+      (week.dailyRoutine.speedQuestions || 0);
+    
+    // Haftalık ders soruları (hafta başına bir kez)
+    const weeklySubjectQuestions = 27 + 18 + 30 + 25; // Tarih + Coğrafya + Matematik + Türkçe
+    
+    // Toplam soru sayısı
+    const weekTotalQuestions = (dailyRoutineQuestions * daysInWeek) + weeklySubjectQuestions;
+    totalQuestions += weekTotalQuestions;
+  });
 
-    Object.keys(progress.daily).forEach((dateStr) => {
-      const date = parseISO(dateStr);
-      if (
-        (isAfter(date, weekStart) || isSameDay(date, weekStart)) &&
-        (isBefore(date, weekEnd) || isSameDay(date, weekEnd))
-      ) {
-        const daily = progress.daily[dateStr];
-        solvedQuestions += daily.tasks.filter((t) => t.completed).length;
+  // TÜM tamamlanan görevleri say (tarih kontrolü yapmadan - çünkü tarih uyumsuzluğu olabilir)
+  Object.keys(progress.daily).forEach((dateStr) => {
+    const daily = progress.daily[dateStr];
+    if (!daily || !daily.tasks) return;
+    
+    // Tamamlanan görevler için soru sayısını hesapla
+    daily.tasks.filter((t) => t.completed).forEach((task) => {
+      const taskId = task.taskId;
+      
+      // TaskId'den tarihi çıkar (örn: routine-paragraph-2026-01-13 -> 2026-01-13)
+      const dateMatch = taskId.match(/(\d{4}-\d{2}-\d{2})/);
+      if (!dateMatch) return;
+      
+      const taskDateStr = dateMatch[1];
+      const taskDate = parseISO(taskDateStr);
+      
+      // Bu görev hangi haftaya ait? Tüm haftaları kontrol et
+      for (const month of studyPlan.months) {
+        for (const week of month.weeks) {
+          const weekStart = parseISO(week.dateRange.start);
+          const weekEnd = parseISO(week.dateRange.end);
+          
+          // Tarih uyumsuzluğu için: Sadece ay ve günü karşılaştır (yıl farklı olabilir)
+          const taskMonth = taskDate.getMonth();
+          const taskDay = taskDate.getDate();
+          const weekStartMonth = weekStart.getMonth();
+          const weekStartDay = weekStart.getDate();
+          const weekEndMonth = weekEnd.getMonth();
+          const weekEndDay = weekEnd.getDate();
+          
+          // Ay ve gün aralığında mı kontrol et
+          const isInWeekRange = 
+            (taskMonth === weekStartMonth && taskDay >= weekStartDay) ||
+            (taskMonth === weekEndMonth && taskDay <= weekEndDay) ||
+            (taskMonth > weekStartMonth && taskMonth < weekEndMonth);
+          
+          if (isInWeekRange || 
+              ((isAfter(taskDate, weekStart) || isSameDay(taskDate, weekStart)) &&
+               (isBefore(taskDate, weekEnd) || isSameDay(taskDate, weekEnd)))) {
+            
+            // Rutin görevler
+            if (taskId.includes("routine-paragraph")) {
+              const count = week.dailyRoutine.paragraphs || 0;
+              solvedQuestions += count;
+            } else if (taskId.includes("routine-problem")) {
+              const count = week.dailyRoutine.problems || 0;
+              solvedQuestions += count;
+            } else if (taskId.includes("routine-speed")) {
+              const count = week.dailyRoutine.speedQuestions || 0;
+              solvedQuestions += count;
+            }
+            // Ders görevleri
+            else if (taskId.includes("task-tarih")) {
+              solvedQuestions += 27;
+            } else if (taskId.includes("task-cografya")) {
+              solvedQuestions += 18;
+            } else if (taskId.includes("task-matematik")) {
+              solvedQuestions += 30;
+            } else if (taskId.includes("task-turkce")) {
+              solvedQuestions += 25;
+            }
+            // Custom görevler
+            else if (taskId.startsWith("custom-")) {
+              solvedQuestions += 1;
+            }
+            
+            return; // Bulduk, döngüden çık
+          }
+        }
       }
     });
   });

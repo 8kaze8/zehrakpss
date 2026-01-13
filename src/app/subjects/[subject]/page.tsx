@@ -5,14 +5,15 @@
 
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { Card } from "@/components/shared/Card";
 import { ProgressBar } from "@/components/shared/ProgressBar";
 import { Button } from "@/components/shared/Button";
 import { SUBJECT_COLORS, SUBJECT_ICONS } from "@/utils/constants";
-import { getSubjectTopics, calculateSubjectProgress } from "@/data/subjects";
+import { getSubjectTopics } from "@/data/subjects";
+import { calculateSubjectProgress } from "@/utils/progress-calculator";
 import { useStudyProgressContext } from "@/context/StudyProgressContext";
 import { formatDate } from "@/utils/date";
 import { cn } from "@/utils/cn";
@@ -27,10 +28,16 @@ export default function SubjectDetailPage() {
   const subjectParam = params.subject as string;
   const subject = subjectParam.toUpperCase() as Subject;
 
-  // Geçerli ders kontrolü
+  // Geçerli ders kontrolü - useEffect içinde yap
+  useEffect(() => {
+    const validSubjects: Subject[] = ["TARİH", "COĞRAFYA", "MATEMATİK", "TÜRKÇE", "VATANDAŞLIK"];
+    if (!validSubjects.includes(subject)) {
+      router.push("/subjects");
+    }
+  }, [subject, router]);
+
   const validSubjects: Subject[] = ["TARİH", "COĞRAFYA", "MATEMATİK", "TÜRKÇE", "VATANDAŞLIK"];
   if (!validSubjects.includes(subject)) {
-    router.push("/subjects");
     return null;
   }
 

@@ -135,23 +135,3 @@ export function getSubjectTopics(subject: Subject): SubjectTopic[] {
   return cachedTopics?.[subject] || [];
 }
 
-/**
- * Belirli bir ders için progress hesapla
- */
-export function calculateSubjectProgress(
-  subject: Subject,
-  completedTaskIds: string[]
-): SubjectData {
-  const topics = getSubjectTopics(subject);
-  const completedTopics = topics.filter((topic) =>
-    completedTaskIds.some((id) => id.includes(topic.id))
-  ).length;
-
-  return {
-    subject,
-    topics,
-    totalTopics: topics.length,
-    completedTopics,
-    progress: topics.length > 0 ? Math.round((completedTopics / topics.length) * 100) : 0,
-  };
-}

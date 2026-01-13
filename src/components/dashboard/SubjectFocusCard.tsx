@@ -12,6 +12,7 @@ import { Button } from "@/components/shared/Button";
 import { getCurrentTopic } from "@/utils/progress-calculator";
 import { calculateSubjectProgress } from "@/utils/progress-calculator";
 import { useStudyProgressContext } from "@/context/StudyProgressContext";
+import { getSubjectTopics } from "@/data/subjects";
 import type { Subject } from "@/types";
 
 export function SubjectFocusCard() {
@@ -19,11 +20,12 @@ export function SubjectFocusCard() {
   
   // Şu anki konuyu bul (Tarih dersi için)
   const subject: Subject = "TARİH";
-  const currentTopic = getCurrentTopic(subject);
   const subjectProgress = calculateSubjectProgress(subject, progress);
+  const currentTopic = subjectProgress.currentTopic;
   
   // Eğer şu anki konu yoksa, ilk konuyu göster
-  const topic = currentTopic || subjectProgress.currentTopic || "Konu seçilmedi";
+  const topics = getSubjectTopics(subject);
+  const topic = currentTopic || (topics.length > 0 ? topics[0].name : "Konu seçilmedi");
   const progressPercentage = subjectProgress.percentage;
 
   return (

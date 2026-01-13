@@ -5,7 +5,7 @@
 
 "use client";
 
-import React, { createContext, useContext, useReducer, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useReducer, useEffect, useCallback, useMemo } from "react";
 import { saveStoredProgress, getOrInitializeProgress } from "@/utils/storage";
 import { toISODate, getWeekId, getMonthYearKey } from "@/utils/date";
 import type {
@@ -68,19 +68,28 @@ function progressReducer(
 
       const taskIndex = daily[date].tasks.findIndex((t) => t.taskId === taskId);
 
+      // Yeni tasks array oluştur (immutability için)
+      const newTasks = [...daily[date].tasks];
+
       if (taskIndex !== -1) {
-        daily[date].tasks[taskIndex] = {
-          ...daily[date].tasks[taskIndex],
+        newTasks[taskIndex] = {
+          ...newTasks[taskIndex],
           completed: true,
           completedAt: new Date().toISOString(),
         };
       } else {
-        daily[date].tasks.push({
+        newTasks.push({
           taskId,
           completed: true,
           completedAt: new Date().toISOString(),
         });
       }
+
+      // Yeni daily[date] objesi oluştur
+      daily[date] = {
+        ...daily[date],
+        tasks: newTasks,
+      };
 
       return {
         ...state,
@@ -97,11 +106,15 @@ function progressReducer(
       const daily = { ...newProgress.daily };
 
       if (daily[date]) {
+        // Yeni tasks array oluştur (immutability için)
+        const newTasks = daily[date].tasks.map((t) =>
+          t.taskId === taskId ? { ...t, completed: false } : t
+        );
+        
+        // Yeni daily[date] objesi oluştur
         daily[date] = {
           ...daily[date],
-          tasks: daily[date].tasks.map((t) =>
-            t.taskId === taskId ? { ...t, completed: false } : t
-          ),
+          tasks: newTasks,
         };
       }
 
@@ -302,18 +315,33 @@ export function StudyProgressProvider({ children }: { children: React.ReactNode 
     [state.progress]
   );
 
-  const value: StudyProgressContextValue = {
-    progress: state.progress,
-    isLoading: state.isLoading,
-    completeTask,
-    uncompleteTask,
-    isTaskCompleted,
-    getWeeklyProgress,
-    getMonthlyProgress,
-    addCustomTask,
-    deleteCustomTask,
-    getCustomTasks,
-  };
+  // useMemo ile value objesini memoize et - sadece state değiştiğinde yeni obje oluştur
+  const value: StudyProgressContextValue = useMemo(
+    () => ({
+      progress: state.progress,
+      isLoading: state.isLoading,
+      completeTask,
+      uncompleteTask,
+      isTaskCompleted,
+      getWeeklyProgress,
+      getMonthlyProgress,
+      addCustomTask,
+      deleteCustomTask,
+      getCustomTasks,
+    }),
+    [
+      state.progress,
+      state.isLoading,
+      completeTask,
+      uncompleteTask,
+      isTaskCompleted,
+      getWeeklyProgress,
+      getMonthlyProgress,
+      addCustomTask,
+      deleteCustomTask,
+      getCustomTasks,
+    ]
+  );
 
   return (
     <StudyProgressContext.Provider value={value}>
