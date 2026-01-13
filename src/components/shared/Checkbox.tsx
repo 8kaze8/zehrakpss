@@ -44,7 +44,7 @@ export function Checkbox({
           onChange={(e) => onChange(e.target.checked)}
           disabled={disabled}
           className={cn(
-            "appearance-none rounded border-2 transition-all",
+            "appearance-none rounded border-2 transition-all duration-200",
             sizeStyles[size],
             checked
               ? "bg-primary border-primary"
@@ -52,6 +52,8 @@ export function Checkbox({
             "focus:ring-2 focus:ring-primary/20 focus:ring-offset-0",
             disabled && "cursor-not-allowed"
           )}
+          aria-checked={checked}
+          aria-label={label || "Checkbox"}
         />
         {checked && (
           <span className="material-symbols-outlined absolute inset-0 flex items-center justify-center text-white text-xs pointer-events-none">

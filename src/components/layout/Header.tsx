@@ -25,7 +25,7 @@ export function Header({
         <div>
           <span className="text-xs font-medium text-text-sub">Hoşgeldin,</span>
           <h2 className="text-sm font-bold text-text-main dark:text-white">
-            KPSS Takip
+            Zehra
           </h2>
         </div>
       </div>

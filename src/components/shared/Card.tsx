@@ -42,7 +42,7 @@ export function Card({
   return (
     <div
       className={cn(
-        "rounded-2xl",
+        "rounded-2xl transition-all duration-200",
         variantStyles[variant],
         paddingStyles[padding],
         shadowStyles[shadow],

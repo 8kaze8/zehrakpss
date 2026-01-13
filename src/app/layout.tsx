@@ -7,6 +7,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "@/styles/globals.css";
 import { StudyProgressProvider } from "@/context/StudyProgressContext";
+import { ThemeProvider } from "@/context/ThemeContext";
 import { BottomNavigation } from "@/components/layout/BottomNavigation";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -29,12 +30,14 @@ export default function RootLayout({
   return (
     <html lang="tr" className="light">
       <body className={inter.className}>
-        <StudyProgressProvider>
-          <div className="relative mx-auto flex h-full min-h-screen w-full max-w-md flex-col overflow-x-hidden bg-background-light dark:bg-background-dark pb-24">
-            {children}
-            <BottomNavigation />
-          </div>
-        </StudyProgressProvider>
+        <ThemeProvider>
+          <StudyProgressProvider>
+            <div className="relative mx-auto flex h-full min-h-screen w-full max-w-md flex-col overflow-x-hidden bg-background-light dark:bg-background-dark pb-24">
+              {children}
+              <BottomNavigation />
+            </div>
+          </StudyProgressProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

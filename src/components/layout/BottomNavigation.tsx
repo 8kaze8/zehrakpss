@@ -36,7 +36,7 @@ export function BottomNavigation() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex flex-col items-center gap-1 p-2 transition-colors",
+                "flex flex-col items-center gap-1 p-2 transition-all duration-200",
                 isActive
                   ? "text-primary"
                   : "text-text-sub hover:text-primary dark:text-gray-400 dark:hover:text-white"
