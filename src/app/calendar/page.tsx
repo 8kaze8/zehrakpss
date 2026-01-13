@@ -14,11 +14,25 @@ import { WeeklyProgressCard } from "@/components/calendar/WeeklyProgressCard";
 import { TodayTasksList } from "@/components/calendar/TodayTasksList";
 import { WeekendGoalsCard } from "@/components/calendar/WeekendGoalsCard";
 import { FloatingActionButton } from "@/components/layout/FloatingActionButton";
+import { AddTaskModal } from "@/components/shared/AddTaskModal";
 import { getWeekId } from "@/utils/date";
 
 export default function CalendarPage() {
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
+
+  const handleAddTask = (task: {
+    title: string;
+    subject: any;
+    description?: string;
+    date: string;
+    timeSlot?: { start: string; end: string };
+    type: "routine" | "study" | "speed" | "exam";
+  }) => {
+    // TODO: Task'ı study plan'a ekle veya localStorage'a kaydet
+    console.log("New task added:", task);
+  };
 
   const handleWeekChange = (direction: "prev" | "next") => {
     setCurrentWeek((prev) =>
@@ -79,7 +93,13 @@ export default function CalendarPage() {
         {/* Weekend Goals */}
         <WeekendGoalsCard />
       </main>
-      <FloatingActionButton onClick={() => console.log("Add task")} />
+      <FloatingActionButton onClick={() => setIsAddTaskOpen(true)} />
+      <AddTaskModal
+        isOpen={isAddTaskOpen}
+        onClose={() => setIsAddTaskOpen(false)}
+        onAddTask={handleAddTask}
+        defaultDate={selectedDate}
+      />
     </>
   );
 }
