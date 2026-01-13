@@ -48,3 +48,6 @@ export const SUBJECT_ICONS = {
   TÜRKÇE: "menu_book",
   VATANDAŞLIK: "gavel",
 } as const;
+
+// Subjects data export
+export { subjectsData } from "@/data/subjects-data";
