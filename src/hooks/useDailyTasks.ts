@@ -20,6 +20,8 @@ export function useDailyTasks(date: Date | string) {
     const todayTasks: TodayTask[] = [];
     const routineTasks: RoutineTask[] = [];
 
+    let foundWeek = false;
+
     // Tüm haftaları kontrol et
     for (const month of studyPlan.months) {
       for (const week of month.weeks) {
@@ -31,6 +33,7 @@ export function useDailyTasks(date: Date | string) {
           targetDate >= weekStart &&
           targetDate <= weekEnd
         ) {
+          foundWeek = true;
           // Günlük rutin görevleri
           if (week.dailyRoutine.paragraphs > 0) {
             routineTasks.push({
@@ -130,6 +133,38 @@ export function useDailyTasks(date: Date | string) {
 
           break; // Haftayı bulduk, döngüden çık
         }
+      }
+    }
+
+    // Eğer bugünün tarihi plan aralığında değilse, ilk haftanın görevlerini göster (test için)
+    if (!foundWeek && studyPlan.months.length > 0 && studyPlan.months[0].weeks.length > 0) {
+      const firstWeek = studyPlan.months[0].weeks[0];
+      
+      if (firstWeek.dailyRoutine.paragraphs > 0) {
+        routineTasks.push({
+          id: `routine-paragraph-${dateISO}`,
+          type: "paragraph",
+          count: firstWeek.dailyRoutine.paragraphs,
+          completed: false,
+        });
+      }
+
+      if (firstWeek.dailyRoutine.problems > 0) {
+        routineTasks.push({
+          id: `routine-problem-${dateISO}`,
+          type: "problem",
+          count: firstWeek.dailyRoutine.problems,
+          completed: false,
+        });
+      }
+
+      if (firstWeek.dailyRoutine.speedQuestions > 0) {
+        routineTasks.push({
+          id: `routine-speed-${dateISO}`,
+          type: "speed",
+          count: firstWeek.dailyRoutine.speedQuestions,
+          completed: false,
+        });
       }
     }
 
