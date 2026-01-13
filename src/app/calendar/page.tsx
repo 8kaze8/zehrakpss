@@ -17,6 +17,7 @@ import { FloatingActionButton } from "@/components/layout/FloatingActionButton";
 import { AddTaskModal } from "@/components/shared/AddTaskModal";
 import { useStudyProgressContext } from "@/context/StudyProgressContext";
 import { getWeekId } from "@/utils/date";
+import type { Subject } from "@/types";
 
 export default function CalendarPage() {
   const [currentWeek, setCurrentWeek] = useState(new Date());
@@ -27,7 +28,7 @@ export default function CalendarPage() {
 
   const handleAddTask = (task: {
     title: string;
-    subject: any;
+    subject: Subject;
     description?: string;
     date: string;
     timeSlot?: { start: string; end: string };

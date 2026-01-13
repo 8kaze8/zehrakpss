@@ -15,7 +15,7 @@ import type {
   MonthlyProgress,
   Month,
 } from "@/types";
-import type { CustomTask, Subject } from "@/types/task";
+import type { CustomTask, Subject, Exam } from "@/types/task";
 
 interface StudyProgressState {
   progress: UserProgress;
@@ -29,6 +29,9 @@ type StudyProgressAction =
   | { type: "ADD_CUSTOM_TASK"; payload: CustomTask }
   | { type: "DELETE_CUSTOM_TASK"; payload: string }
   | { type: "TOGGLE_CUSTOM_TASK"; payload: { taskId: string; date: string } }
+  | { type: "ADD_EXAM"; payload: Exam }
+  | { type: "DELETE_EXAM"; payload: string }
+  | { type: "COMPLETE_EXAM"; payload: string }
   | { type: "SET_LOADING"; payload: boolean };
 
 const initialState: StudyProgressState = {
@@ -37,6 +40,7 @@ const initialState: StudyProgressState = {
     weekly: {},
     monthly: {},
     customTasks: [],
+    exams: [],
   },
   isLoading: true,
 };
@@ -171,6 +175,48 @@ function progressReducer(
       };
     }
 
+    case "ADD_EXAM": {
+      const newProgress = { ...state.progress };
+      const exams = [...(newProgress.exams || []), action.payload];
+      return {
+        ...state,
+        progress: {
+          ...newProgress,
+          exams,
+        },
+      };
+    }
+
+    case "DELETE_EXAM": {
+      const newProgress = { ...state.progress };
+      const exams = (newProgress.exams || []).filter(
+        (e) => e.id !== action.payload
+      );
+      return {
+        ...state,
+        progress: {
+          ...newProgress,
+          exams,
+        },
+      };
+    }
+
+    case "COMPLETE_EXAM": {
+      const newProgress = { ...state.progress };
+      const exams = (newProgress.exams || []).map((exam) =>
+        exam.id === action.payload
+          ? { ...exam, completed: true }
+          : exam
+      );
+      return {
+        ...state,
+        progress: {
+          ...newProgress,
+          exams,
+        },
+      };
+    }
+
     case "SET_LOADING":
       return {
         ...state,
@@ -193,6 +239,10 @@ interface StudyProgressContextValue {
   addCustomTask: (task: Omit<CustomTask, "id" | "createdAt" | "completed">) => void;
   deleteCustomTask: (taskId: string) => void;
   getCustomTasks: (date?: Date | string) => CustomTask[];
+  addExam: (exam: Omit<Exam, "id" | "createdAt" | "completed">) => void;
+  deleteExam: (examId: string) => void;
+  completeExam: (examId: string) => void;
+  getExams: (date?: Date | string) => Exam[];
 }
 
 const StudyProgressContext = createContext<StudyProgressContextValue | undefined>(undefined);
@@ -315,6 +365,39 @@ export function StudyProgressProvider({ children }: { children: React.ReactNode 
     [state.progress]
   );
 
+  // Exam functions
+  const addExam = useCallback(
+    (exam: Omit<Exam, "id" | "createdAt" | "completed">) => {
+      const newExam: Exam = {
+        ...exam,
+        id: `exam-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        createdAt: new Date().toISOString(),
+        completed: exam.results ? true : false,
+      };
+      dispatch({ type: "ADD_EXAM", payload: newExam });
+    },
+    []
+  );
+
+  const deleteExam = useCallback((examId: string) => {
+    dispatch({ type: "DELETE_EXAM", payload: examId });
+  }, []);
+
+  const completeExam = useCallback((examId: string) => {
+    dispatch({ type: "COMPLETE_EXAM", payload: examId });
+  }, []);
+
+  const getExams = useCallback(
+    (date?: Date | string): Exam[] => {
+      const exams = state.progress.exams || [];
+      if (!date) return exams;
+
+      const dateISO = toISODate(date);
+      return exams.filter((exam) => exam.date === dateISO);
+    },
+    [state.progress]
+  );
+
   // useMemo ile value objesini memoize et - sadece state değiştiğinde yeni obje oluştur
   const value: StudyProgressContextValue = useMemo(
     () => ({
@@ -328,6 +411,10 @@ export function StudyProgressProvider({ children }: { children: React.ReactNode 
       addCustomTask,
       deleteCustomTask,
       getCustomTasks,
+      addExam,
+      deleteExam,
+      completeExam,
+      getExams,
     }),
     [
       state.progress,
@@ -340,6 +427,10 @@ export function StudyProgressProvider({ children }: { children: React.ReactNode 
       addCustomTask,
       deleteCustomTask,
       getCustomTasks,
+      addExam,
+      deleteExam,
+      completeExam,
+      getExams,
     ]
   );
 

@@ -28,9 +28,9 @@ export function DailyRoutineCard() {
     }
   };
 
-  const handleStart = (taskId: string, taskLabel: string) => {
+  const handleStart = (taskId: string, taskLabel: string, taskType: string) => {
     setTimerTask({
-      type: "Hız Testi",
+      type: taskType,
       title: taskLabel,
     });
     setTimerOpen(true);
@@ -41,17 +41,42 @@ export function DailyRoutineCard() {
   };
 
   // Rutin görevleri formatla
-  const formattedRoutineTasks = routineTasks.map((task) => ({
-    id: task.id,
-    label:
-      task.type === "paragraph"
-        ? `${task.count} Paragraf`
-        : task.type === "problem"
-        ? `${task.count} Problem`
-        : `${task.count} Hız Sorusu`,
-    completed: task.completed,
-    showPlayButton: task.type === "speed",
-  }));
+  const formattedRoutineTasks = routineTasks.map((task) => {
+    // Özel label varsa onu kullan
+    let label = task.label;
+    let taskTypeName = "Hız Testi";
+
+    if (!label) {
+      switch (task.type) {
+        case "paragraph":
+          label = `${task.count} Paragraf`;
+          break;
+        case "problem":
+          label = `${task.count} Problem`;
+          taskTypeName = "Problem Çözümü";
+          break;
+        case "speed":
+          label = `${task.count} Hız Sorusu`;
+          taskTypeName = "Hız Testi";
+          break;
+        case "karma":
+          label = "Karma Mat Testi";
+          taskTypeName = "Karma Test";
+          break;
+        default:
+          label = `${task.count} Soru`;
+      }
+    }
+
+    return {
+      id: task.id,
+      label,
+      completed: task.completed,
+      showPlayButton: task.requiresTimer || task.type === "speed" || task.type === "karma",
+      taskTypeName,
+      timerDuration: task.timerDuration,
+    };
+  });
 
   return (
     <section className="px-6 pb-6">
@@ -73,7 +98,7 @@ export function DailyRoutineCard() {
               label={task.label}
               completed={isTaskCompleted(task.id, today)}
               onToggle={handleToggle}
-              onStart={task.showPlayButton ? (id) => handleStart(id, task.label) : undefined}
+              onStart={task.showPlayButton ? (id) => handleStart(id, task.label, task.taskTypeName) : undefined}
               onDelete={task.id.startsWith("custom-") ? handleDelete : undefined}
               showPlayButton={task.showPlayButton}
               isCustom={task.id.startsWith("custom-")}

@@ -4,7 +4,7 @@
  */
 
 import { Month } from "./study-plan";
-import { CustomTask } from "./task";
+import { CustomTask, Exam } from "./task";
 
 export interface TaskCompletion {
   taskId: string;
@@ -38,6 +38,7 @@ export interface UserProgress {
   weekly: Record<string, WeeklyProgress>; // weekId -> WeeklyProgress
   monthly: Record<string, MonthlyProgress>; // "month-year" -> MonthlyProgress
   customTasks: CustomTask[]; // Kullanıcının eklediği özel görevler
+  exams: Exam[]; // Kullanıcının eklediği denemeler
 }
 
 export interface StoredProgress {

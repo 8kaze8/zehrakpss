@@ -27,9 +27,12 @@ export interface TodayTask extends StudyTask {
 
 export interface RoutineTask {
   id: string;
-  type: "paragraph" | "problem" | "speed";
+  type: "paragraph" | "problem" | "speed" | "karma";
   count: number;
   completed: boolean;
+  requiresTimer?: boolean; // Süreli çalışma için
+  timerDuration?: number; // saniye cinsinden
+  label?: string; // Özel etiket (örn: "Karma Mat Testi")
 }
 
 export interface CustomTask {
@@ -45,4 +48,35 @@ export interface CustomTask {
   type: TaskType;
   createdAt: string; // ISO timestamp
   completed: boolean;
+}
+
+/**
+ * Deneme sonuç tipi
+ */
+export interface ExamResult {
+  correct: number;
+  wrong: number;
+  empty: number;
+  net: number;
+}
+
+/**
+ * Deneme tipi
+ */
+export interface Exam {
+  id: string;
+  title: string;
+  type: "branch" | "general" | "tg"; // Branş, Genel, Türkiye Geneli
+  subject?: Subject; // Branş denemeleri için
+  date: string; // ISO date (YYYY-MM-DD)
+  createdAt: string; // ISO timestamp
+  completed: boolean;
+  results?: {
+    turkce?: ExamResult;
+    matematik?: ExamResult;
+    tarih?: ExamResult;
+    cografya?: ExamResult;
+    vatandaslik?: ExamResult;
+    total?: ExamResult;
+  };
 }
