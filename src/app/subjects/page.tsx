@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { Card } from "@/components/shared/Card";
 import { ProgressBar } from "@/components/shared/ProgressBar";
-import { SUBJECT_COLORS, SUBJECT_ICONS, SUBJECT_QUESTION_COUNTS } from "@/utils/constants";
+import { SUBJECT_COLORS, SUBJECT_ICONS, SUBJECT_QUESTION_COUNTS, SUBJECT_TO_SLUG } from "@/utils/constants";
 import { calculateSubjectProgress } from "@/utils/progress-calculator";
 import { useStudyProgressContext } from "@/context/StudyProgressContext";
 import { cn } from "@/utils/cn";
@@ -23,7 +23,8 @@ export default function SubjectsPage() {
   const { progress } = useStudyProgressContext();
 
   const handleViewTopics = (subject: Subject) => {
-    router.push(`/subjects/${subject.toLowerCase()}`);
+    const slug = SUBJECT_TO_SLUG[subject] || subject.toLowerCase();
+    router.push(`/subjects/${slug}`);
   };
 
   return (

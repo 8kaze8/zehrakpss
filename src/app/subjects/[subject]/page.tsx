@@ -11,7 +11,7 @@ import { Header } from "@/components/layout/Header";
 import { Card } from "@/components/shared/Card";
 import { ProgressBar } from "@/components/shared/ProgressBar";
 import { Button } from "@/components/shared/Button";
-import { SUBJECT_COLORS, SUBJECT_ICONS } from "@/utils/constants";
+import { SUBJECT_COLORS, SUBJECT_ICONS, SUBJECT_SLUG_MAP } from "@/utils/constants";
 import { getSubjectTopics } from "@/data/subjects";
 import { calculateSubjectProgress } from "@/utils/progress-calculator";
 import { useStudyProgressContext } from "@/context/StudyProgressContext";
@@ -24,20 +24,25 @@ export default function SubjectDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { progress } = useStudyProgressContext();
+  const [isValid, setIsValid] = React.useState(true);
 
   const subjectParam = params.subject as string;
-  const subject = subjectParam.toUpperCase() as Subject;
+  // URL slug'ını gerçek Subject tipine çevir
+  const subject = (SUBJECT_SLUG_MAP[subjectParam.toLowerCase()] || subjectParam.toUpperCase()) as Subject;
 
-  // Geçerli ders kontrolü - useEffect içinde yap
+  // Geçerli ders kontrolü
   useEffect(() => {
     const validSubjects: Subject[] = ["TARİH", "COĞRAFYA", "MATEMATİK", "TÜRKÇE", "VATANDAŞLIK"];
     if (!validSubjects.includes(subject)) {
-      router.push("/subjects");
+      setIsValid(false);
+      router.replace("/subjects");
+      return;
     }
+    setIsValid(true);
   }, [subject, router]);
 
   const validSubjects: Subject[] = ["TARİH", "COĞRAFYA", "MATEMATİK", "TÜRKÇE", "VATANDAŞLIK"];
-  if (!validSubjects.includes(subject)) {
+  if (!isValid || !validSubjects.includes(subject)) {
     return null;
   }
 
@@ -45,6 +50,18 @@ export default function SubjectDetailPage() {
   const subjectData = calculateSubjectProgress(subject, progress);
   const colors = SUBJECT_COLORS[subject];
   const icon = SUBJECT_ICONS[subject];
+  
+  // Debug: topics boş mu kontrol et
+  useEffect(() => {
+    console.log('SubjectDetailPage:', { 
+      subject, 
+      topicsCount: topics.length, 
+      firstTopics: topics.slice(0, 3).map(t => t.name) // İlk 3'ün isimlerini göster
+    });
+    if (topics.length === 0) {
+      console.warn('⚠️ No topics found for subject:', subject);
+    }
+  }, [subject, topics.length]);
 
   const today = new Date();
 

@@ -57,3 +57,21 @@ export const SUBJECT_QUESTION_COUNTS = {
   TÜRKÇE: 0, // Belirtilmemiş
   VATANDAŞLIK: 0, // Belirtilmemiş
 } as const;
+
+// URL-safe slug to Subject mapping (Türkçe karakterler için)
+export const SUBJECT_SLUG_MAP: Record<string, string> = {
+  tarih: "TARİH",
+  cografya: "COĞRAFYA",
+  matematik: "MATEMATİK",
+  turkce: "TÜRKÇE",
+  vatandaslik: "VATANDAŞLIK",
+} as const;
+
+// Subject to URL-safe slug mapping
+export const SUBJECT_TO_SLUG: Record<string, string> = {
+  TARİH: "tarih",
+  COĞRAFYA: "cografya",
+  MATEMATİK: "matematik",
+  TÜRKÇE: "turkce",
+  VATANDAŞLIK: "vatandaslik",
+} as const;

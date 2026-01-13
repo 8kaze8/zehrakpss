@@ -25,7 +25,7 @@ function getMonthIndex(month: Month): number {
 export function MonthlyGoalWidget() {
   const { progress } = useStudyProgressContext();
   
-  // Study plan'dan ilk ayı al (2024 OCAK)
+  // Study plan'dan ilk ayı al (2026 OCAK)
   // Eğer şu anki tarih plan aralığında değilse, planın ilk ayını göster
   const today = new Date();
   const studyPlanStart = new Date(studyPlan.startDate);
@@ -41,7 +41,7 @@ export function MonthlyGoalWidget() {
   } else {
     // Plan aralığında değilse planın ilk ayını göster
     displayMonth = studyPlan.months[0]?.month || "OCAK";
-    displayYear = studyPlan.months[0]?.year || 2024;
+    displayYear = studyPlan.months[0]?.year || 2026;
   }
   
   // Aylık ilerlemeyi hesapla - progress değiştiğinde yeniden hesapla

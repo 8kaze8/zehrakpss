@@ -1,23 +1,23 @@
 /**
  * Study Plan Data
- * Çalışma planı verisi - Ocak 2024'ten Temmuz 2024'e kadar
+ * Çalışma planı verisi - Ocak 2026'ten Temmuz 2026'e kadar
  */
 
 import type { StudyPlan } from "@/types";
 
 export const studyPlan: StudyPlan = {
-  startDate: "2024-01-13",
-  endDate: "2024-07-31",
+  startDate: "2026-01-13",
+  endDate: "2026-07-31",
   months: [
     {
       month: "OCAK",
-      year: 2024,
+      year: 2026,
       weeks: [
         {
           weekNumber: 3,
           dateRange: {
-            start: "2024-01-13",
-            end: "2024-01-19",
+            start: "2026-01-13",
+            end: "2026-01-19",
           },
           dailyRoutine: {
             paragraphs: 20,
@@ -35,8 +35,8 @@ export const studyPlan: StudyPlan = {
         {
           weekNumber: 4,
           dateRange: {
-            start: "2024-01-20",
-            end: "2024-01-26",
+            start: "2026-01-20",
+            end: "2026-01-26",
           },
           dailyRoutine: {
             paragraphs: 20,
@@ -55,13 +55,13 @@ export const studyPlan: StudyPlan = {
     },
     {
       month: "ŞUBAT",
-      year: 2024,
+      year: 2026,
       weeks: [
         {
           weekNumber: 1,
           dateRange: {
-            start: "2024-01-29",
-            end: "2024-02-04",
+            start: "2026-01-29",
+            end: "2026-02-04",
           },
           dailyRoutine: {
             paragraphs: 20,
@@ -79,8 +79,8 @@ export const studyPlan: StudyPlan = {
         {
           weekNumber: 2,
           dateRange: {
-            start: "2024-02-05",
-            end: "2024-02-11",
+            start: "2026-02-05",
+            end: "2026-02-11",
           },
           dailyRoutine: {
             paragraphs: 20,
@@ -98,8 +98,8 @@ export const studyPlan: StudyPlan = {
         {
           weekNumber: 3,
           dateRange: {
-            start: "2024-02-12",
-            end: "2024-02-18",
+            start: "2026-02-12",
+            end: "2026-02-18",
           },
           dailyRoutine: {
             paragraphs: 20,
@@ -117,8 +117,8 @@ export const studyPlan: StudyPlan = {
         {
           weekNumber: 4,
           dateRange: {
-            start: "2024-02-19",
-            end: "2024-02-25",
+            start: "2026-02-19",
+            end: "2026-02-25",
           },
           dailyRoutine: {
             paragraphs: 20,
@@ -137,13 +137,13 @@ export const studyPlan: StudyPlan = {
     },
     {
       month: "MART",
-      year: 2024,
+      year: 2026,
       weeks: [
         {
           weekNumber: 1,
           dateRange: {
-            start: "2024-02-26",
-            end: "2024-03-03",
+            start: "2026-02-26",
+            end: "2026-03-03",
           },
           dailyRoutine: {
             paragraphs: 20,
@@ -161,8 +161,8 @@ export const studyPlan: StudyPlan = {
         {
           weekNumber: 2,
           dateRange: {
-            start: "2024-03-04",
-            end: "2024-03-10",
+            start: "2026-03-04",
+            end: "2026-03-10",
           },
           dailyRoutine: {
             paragraphs: 20,
@@ -180,8 +180,8 @@ export const studyPlan: StudyPlan = {
         {
           weekNumber: 3,
           dateRange: {
-            start: "2024-03-11",
-            end: "2024-03-17",
+            start: "2026-03-11",
+            end: "2026-03-17",
           },
           dailyRoutine: {
             paragraphs: 20,
@@ -199,8 +199,8 @@ export const studyPlan: StudyPlan = {
         {
           weekNumber: 4,
           dateRange: {
-            start: "2024-03-18",
-            end: "2024-03-24",
+            start: "2026-03-18",
+            end: "2026-03-24",
           },
           dailyRoutine: {
             paragraphs: 20,
@@ -219,13 +219,13 @@ export const studyPlan: StudyPlan = {
     },
     {
       month: "NİSAN",
-      year: 2024,
+      year: 2026,
       weeks: [
         {
           weekNumber: 1,
           dateRange: {
-            start: "2024-03-25",
-            end: "2024-03-31",
+            start: "2026-03-25",
+            end: "2026-03-31",
           },
           dailyRoutine: {
             paragraphs: 20,
@@ -243,8 +243,8 @@ export const studyPlan: StudyPlan = {
         {
           weekNumber: 2,
           dateRange: {
-            start: "2024-04-01",
-            end: "2024-04-07",
+            start: "2026-04-01",
+            end: "2026-04-07",
           },
           dailyRoutine: {
             paragraphs: 20,
@@ -262,8 +262,8 @@ export const studyPlan: StudyPlan = {
         {
           weekNumber: 3,
           dateRange: {
-            start: "2024-04-08",
-            end: "2024-04-14",
+            start: "2026-04-08",
+            end: "2026-04-14",
           },
           dailyRoutine: {
             paragraphs: 20,
@@ -281,8 +281,8 @@ export const studyPlan: StudyPlan = {
         {
           weekNumber: 4,
           dateRange: {
-            start: "2024-04-15",
-            end: "2024-04-21",
+            start: "2026-04-15",
+            end: "2026-04-21",
           },
           dailyRoutine: {
             paragraphs: 20,
@@ -301,13 +301,13 @@ export const studyPlan: StudyPlan = {
     },
     {
       month: "MAYIS",
-      year: 2024,
+      year: 2026,
       weeks: [
         {
           weekNumber: 1,
           dateRange: {
-            start: "2024-04-22",
-            end: "2024-04-28",
+            start: "2026-04-22",
+            end: "2026-04-28",
           },
           dailyRoutine: {
             paragraphs: 20,
@@ -325,8 +325,8 @@ export const studyPlan: StudyPlan = {
         {
           weekNumber: 2,
           dateRange: {
-            start: "2024-04-29",
-            end: "2024-05-05",
+            start: "2026-04-29",
+            end: "2026-05-05",
           },
           dailyRoutine: {
             paragraphs: 20,
@@ -344,8 +344,8 @@ export const studyPlan: StudyPlan = {
         {
           weekNumber: 3,
           dateRange: {
-            start: "2024-05-06",
-            end: "2024-05-12",
+            start: "2026-05-06",
+            end: "2026-05-12",
           },
           dailyRoutine: {
             paragraphs: 20,
@@ -363,8 +363,8 @@ export const studyPlan: StudyPlan = {
         {
           weekNumber: 4,
           dateRange: {
-            start: "2024-05-13",
-            end: "2024-05-19",
+            start: "2026-05-13",
+            end: "2026-05-19",
           },
           dailyRoutine: {
             paragraphs: 20,
@@ -383,13 +383,13 @@ export const studyPlan: StudyPlan = {
     },
     {
       month: "HAZİRAN",
-      year: 2024,
+      year: 2026,
       weeks: [
         {
           weekNumber: 1,
           dateRange: {
-            start: "2024-05-20",
-            end: "2024-05-26",
+            start: "2026-05-20",
+            end: "2026-05-26",
           },
           dailyRoutine: {
             paragraphs: 20,
@@ -407,8 +407,8 @@ export const studyPlan: StudyPlan = {
         {
           weekNumber: 2,
           dateRange: {
-            start: "2024-05-27",
-            end: "2024-06-02",
+            start: "2026-05-27",
+            end: "2026-06-02",
           },
           dailyRoutine: {
             paragraphs: 0,
@@ -426,8 +426,8 @@ export const studyPlan: StudyPlan = {
         {
           weekNumber: 3,
           dateRange: {
-            start: "2024-06-03",
-            end: "2024-06-09",
+            start: "2026-06-03",
+            end: "2026-06-09",
           },
           dailyRoutine: {
             paragraphs: 0,
@@ -445,8 +445,8 @@ export const studyPlan: StudyPlan = {
         {
           weekNumber: 4,
           dateRange: {
-            start: "2024-06-10",
-            end: "2024-06-16",
+            start: "2026-06-10",
+            end: "2026-06-16",
           },
           dailyRoutine: {
             paragraphs: 0,
@@ -465,13 +465,13 @@ export const studyPlan: StudyPlan = {
     },
     {
       month: "TEMMUZ",
-      year: 2024,
+      year: 2026,
       weeks: [
         {
           weekNumber: 1,
           dateRange: {
-            start: "2024-06-17",
-            end: "2024-07-31",
+            start: "2026-06-17",
+            end: "2026-07-31",
           },
           dailyRoutine: {
             paragraphs: 0,
