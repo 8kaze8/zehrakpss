@@ -5,17 +5,19 @@
 
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { Card } from "@/components/shared/Card";
 import { TaskItem } from "./TaskItem";
 import { useDailyTasks } from "@/hooks/useDailyTasks";
 import { useStudyProgressContext } from "@/context/StudyProgressContext";
-import { getTodayISO } from "@/utils/date";
+import { TimerModal } from "@/components/timer/TimerModal";
 
 export function DailyRoutineCard() {
   const today = new Date();
   const { studyTasks, routineTasks } = useDailyTasks(today);
   const { isTaskCompleted, completeTask, uncompleteTask } = useStudyProgressContext();
+  const [timerOpen, setTimerOpen] = useState(false);
+  const [timerTask, setTimerTask] = useState<{ type: string; title: string } | null>(null);
 
   const handleToggle = (taskId: string) => {
     const completed = isTaskCompleted(taskId, today);
@@ -26,9 +28,12 @@ export function DailyRoutineCard() {
     }
   };
 
-  const handleStart = (taskId: string) => {
-    // Timer başlatma logic'i buraya gelecek
-    console.log("Start timer for task:", taskId);
+  const handleStart = (taskId: string, taskLabel: string) => {
+    setTimerTask({
+      type: "Hız Testi",
+      title: taskLabel,
+    });
+    setTimerOpen(true);
   };
 
   // Rutin görevleri formatla
@@ -64,12 +69,25 @@ export function DailyRoutineCard() {
               label={task.label}
               completed={isTaskCompleted(task.id, today)}
               onToggle={handleToggle}
-              onStart={task.showPlayButton ? handleStart : undefined}
+              onStart={task.showPlayButton ? (id) => handleStart(id, task.label) : undefined}
               showPlayButton={task.showPlayButton}
             />
           ))}
         </div>
       </Card>
+
+      {/* Timer Modal */}
+      {timerTask && (
+        <TimerModal
+          isOpen={timerOpen}
+          onClose={() => {
+            setTimerOpen(false);
+            setTimerTask(null);
+          }}
+          taskType={timerTask.type}
+          taskTitle={timerTask.title}
+        />
+      )}
     </section>
   );
 }

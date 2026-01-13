@@ -14,7 +14,7 @@ interface TaskItemProps {
   label: string;
   completed: boolean;
   onToggle: (id: string) => void;
-  onStart?: (id: string) => void;
+  onStart?: (id: string, label: string) => void;
   showPlayButton?: boolean;
 }
 
@@ -42,7 +42,7 @@ export function TaskItem({
       </div>
       {showPlayButton && onStart && (
         <button
-          onClick={() => onStart(id)}
+          onClick={() => onStart(id, label)}
           className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary transition hover:bg-primary hover:text-white dark:bg-primary/20 dark:text-blue-300 dark:hover:bg-primary dark:hover:text-white"
           aria-label="Başlat"
         >
