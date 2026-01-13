@@ -6,21 +6,29 @@
 "use client";
 
 import React from "react";
+import { format } from "date-fns";
+import { tr } from "date-fns/locale";
 import { Card } from "@/components/shared/Card";
 import { CircularProgress } from "@/components/shared/CircularProgress";
 import { formatNumber } from "@/utils/formatters";
 import { useStudyProgressContext } from "@/context/StudyProgressContext";
+import { calculateMonthlyProgress } from "@/utils/progress-calculator";
+import type { Month } from "@/types";
 
 export function MonthlyGoalWidget() {
-  const { getMonthlyProgress } = useStudyProgressContext();
+  const { progress } = useStudyProgressContext();
   
-  // Şu anki ay için progress (örnek: Haziran 2024)
-  const monthlyProgress = getMonthlyProgress("HAZİRAN", 2024);
+  // Şu anki ay ve yıl
+  const today = new Date();
+  const currentMonth = format(today, "MMMM", { locale: tr }).toUpperCase() as Month;
+  const currentYear = today.getFullYear();
   
-  // Varsayılan değerler (gerçek implementasyonda study plan'dan hesaplanmalı)
-  const solvedQuestions = monthlyProgress.solvedQuestions || 1240;
-  const remainingQuestions = monthlyProgress.remainingQuestions || 650;
-  const percentage = monthlyProgress.percentage || 65;
+  // Aylık ilerlemeyi hesapla
+  const monthlyProgress = calculateMonthlyProgress(currentMonth, currentYear, progress);
+  
+  const solvedQuestions = monthlyProgress.solvedQuestions;
+  const remainingQuestions = monthlyProgress.remainingQuestions;
+  const percentage = monthlyProgress.percentage;
 
   return (
     <section className="px-6 pb-6">
@@ -30,7 +38,9 @@ export function MonthlyGoalWidget() {
             <h3 className="text-lg font-bold text-text-main dark:text-white">
               Aylık Hedef
             </h3>
-            <p className="text-sm text-text-sub">Haziran Ayı İlerlemesi</p>
+            <p className="text-sm text-text-sub">
+              {format(today, "MMMM yyyy", { locale: tr })} İlerlemesi
+            </p>
           </div>
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
             <span className="material-symbols-outlined" style={{ fontSize: 20 }}>

@@ -5,224 +5,213 @@
 
 import { parseISO, isAfter, isBefore, isSameDay } from "date-fns";
 import { studyPlan } from "@/data/study-plan";
-import { subjectsData } from "@/data/subjects-data";
+import { getSubjectTopics } from "@/data/subjects";
 import type { Subject, Month } from "@/types";
+import { getMonthYearKey, toISODate, getWeekId } from "./date";
 import type { UserProgress } from "@/types/progress";
-import { getMonthYearKey, toISODate } from "./date";
 
 /**
- * Belirli bir ders için tamamlanan konu sayısını hesapla
+ * Aylık ilerlemeyi hesapla
+ */
+export function calculateMonthlyProgress(
+  month: Month,
+  year: number,
+  progress: UserProgress
+): {
+  solvedQuestions: number;
+  remainingQuestions: number;
+  percentage: number;
+  totalQuestions: number;
+} {
+  // O ay için planlanan haftaları bul
+  const monthlyPlan = studyPlan.months.find(
+    (m) => m.month === month && m.year === year
+  );
+
+  if (!monthlyPlan) {
+    return {
+      solvedQuestions: 0,
+      remainingQuestions: 0,
+      percentage: 0,
+      totalQuestions: 0,
+    };
+  }
+
+  // O ay için toplam soru sayısını hesapla
+  // Her hafta için: Tarih (27), Coğrafya (18), Matematik (30), Türkçe (varsayılan 25)
+  let totalQuestions = 0;
+  let solvedQuestions = 0;
+
+  monthlyPlan.weeks.forEach((week) => {
+    // Her hafta için soru sayısı
+    const weekQuestions = 27 + 18 + 30 + 25; // Tarih + Coğrafya + Matematik + Türkçe
+    totalQuestions += weekQuestions;
+
+    // O hafta için tamamlanan görevleri say
+    const weekStart = parseISO(week.dateRange.start);
+    const weekEnd = parseISO(week.dateRange.end);
+
+    Object.keys(progress.daily).forEach((dateStr) => {
+      const date = parseISO(dateStr);
+      if (
+        (isAfter(date, weekStart) || isSameDay(date, weekStart)) &&
+        (isBefore(date, weekEnd) || isSameDay(date, weekEnd))
+      ) {
+        const daily = progress.daily[dateStr];
+        solvedQuestions += daily.tasks.filter((t) => t.completed).length;
+      }
+    });
+  });
+
+  const remainingQuestions = Math.max(0, totalQuestions - solvedQuestions);
+  const percentage =
+    totalQuestions > 0
+      ? Math.round((solvedQuestions / totalQuestions) * 100)
+      : 0;
+
+  return {
+    solvedQuestions,
+    remainingQuestions,
+    percentage,
+    totalQuestions,
+  };
+}
+
+/**
+ * Haftalık ilerlemeyi hesapla
+ */
+export function calculateWeeklyProgress(
+  weekId: string,
+  progress: UserProgress
+): {
+  completedTasks: number;
+  totalTasks: number;
+  percentage: number;
+} {
+  // WeekId'den tarih aralığını bul
+  let weekStart: Date | null = null;
+  let weekEnd: Date | null = null;
+
+  for (const month of studyPlan.months) {
+    for (const week of month.weeks) {
+      const currentWeekId = getWeekId(parseISO(week.dateRange.start));
+      if (currentWeekId === weekId) {
+        weekStart = parseISO(week.dateRange.start);
+        weekEnd = parseISO(week.dateRange.end);
+        break;
+      }
+    }
+    if (weekStart && weekEnd) break;
+  }
+
+  if (!weekStart || !weekEnd) {
+    return {
+      completedTasks: 0,
+      totalTasks: 0,
+      percentage: 0,
+    };
+  }
+
+  // O hafta için görevleri say
+  let totalTasks = 0;
+  let completedTasks = 0;
+
+  // Rutin görevler (her gün)
+  const daysInWeek = 7;
+  totalTasks += daysInWeek * 3; // Paragraf, Problem, Hız
+
+  // Ders görevleri (her hafta)
+  totalTasks += 4; // Tarih, Coğrafya, Matematik, Türkçe
+
+  // O hafta içindeki günler için tamamlanan görevleri say
+  Object.keys(progress.daily).forEach((dateStr) => {
+    const date = parseISO(dateStr);
+    if (
+      (isAfter(date, weekStart!) || isSameDay(date, weekStart!)) &&
+      (isBefore(date, weekEnd!) || isSameDay(date, weekEnd!))
+    ) {
+      const daily = progress.daily[dateStr];
+      completedTasks += daily.tasks.filter((t) => t.completed).length;
+    }
+  });
+
+  const percentage =
+    totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+  return {
+    completedTasks,
+    totalTasks,
+    percentage,
+  };
+}
+
+/**
+ * Ders bazlı ilerlemeyi hesapla
  */
 export function calculateSubjectProgress(
   subject: Subject,
   progress: UserProgress
-): { completed: number; total: number; percentage: number } {
-  const topics = subjectsData[subject]?.topics || [];
+): {
+  completed: number;
+  total: number;
+  percentage: number;
+  currentTopic?: string;
+} {
+  const topics = getSubjectTopics(subject);
   const total = topics.length;
 
-  if (total === 0) {
-    return { completed: 0, total: 0, percentage: 0 };
-  }
+  // Tamamlanan konuları say (task completion'a göre)
+  const completed = topics.filter((topic) => {
+    // Bu konu için görev ID'si oluştur
+    const taskId = `task-${subject.toLowerCase()}-${topic.dateRange.start}`;
+    
+    // Bu görevin tamamlanıp tamamlanmadığını kontrol et
+    return Object.values(progress.daily).some((daily) =>
+      daily.tasks.some(
+        (t) => t.taskId === taskId && t.completed
+      )
+    );
+  }).length;
 
-  // Bugünün tarihi
+  // Şu anki konuyu bul (bugünün tarihine göre)
   const today = new Date();
-  const todayISO = toISODate(today);
-
-  // Tamamlanan konuları say
-  let completed = 0;
-
-  topics.forEach((topic) => {
-    // Bu konunun işlendiği haftaları kontrol et
-    const topicWeeks = topic.weeks;
-    let topicCompleted = false;
-
-    // Her hafta için kontrol et
-    for (const weekKey of topicWeeks) {
-      const [month, weekNum] = weekKey.split("-");
-      
-      // Study plan'dan bu haftayı bul
-      const monthData = studyPlan.months.find((m) => m.month === month);
-      if (!monthData) continue;
-
-      const week = monthData.weeks.find((w) => w.weekNumber === parseInt(weekNum));
-      if (!week) continue;
-
-      // Bu haftanın tarih aralığını kontrol et
-      const weekStart = parseISO(week.dateRange.start);
-      const weekEnd = parseISO(week.dateRange.end);
-
-      // Eğer bu hafta geçtiyse ve görevler tamamlandıysa
-      if (isBefore(weekEnd, today) || isSameDay(weekEnd, today)) {
-        // Bu hafta için görevlerin tamamlanıp tamamlanmadığını kontrol et
-        const weekDays = [];
-        let currentDate = weekStart;
-        while (currentDate <= weekEnd) {
-          weekDays.push(toISODate(currentDate));
-          currentDate = new Date(currentDate.getTime() + 24 * 60 * 60 * 1000);
-        }
-
-        // Haftanın en az %70'i tamamlandıysa konu tamamlanmış sayılır
-        const completedDays = weekDays.filter((date) => {
-          const daily = progress.daily[date];
-          if (!daily) return false;
-          return daily.tasks.length > 0 && daily.tasks.some((t) => t.completed);
-        }).length;
-
-        if (completedDays / weekDays.length >= 0.7) {
-          topicCompleted = true;
-          break;
-        }
-      }
-    }
-
-    if (topicCompleted) {
-      completed++;
-    }
+  const currentTopic = topics.find((topic) => {
+    const start = parseISO(topic.dateRange.start);
+    const end = parseISO(topic.dateRange.end);
+    return (
+      (isAfter(today, start) || isSameDay(today, start)) &&
+      (isBefore(today, end) || isSameDay(today, end))
+    );
   });
 
-  const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
-
-  return { completed, total, percentage };
-}
-
-/**
- * Belirli bir ay için çözülen soru sayısını hesapla
- */
-export function calculateMonthlySolvedQuestions(
-  month: Month,
-  year: number,
-  progress: UserProgress
-): { solved: number; remaining: number; percentage: number } {
-  const monthData = studyPlan.months.find(
-    (m) => m.month === month && m.year === year
-  );
-
-  if (!monthData) {
-    return { solved: 0, remaining: 0, percentage: 0 };
-  }
-
-  // Toplam soru sayısı (her ders için)
-  const totalQuestions = 27 + 18 + 30; // Tarih + Coğrafya + Matematik
-
-  // Bu ay için tamamlanan görevleri say
-  let solvedQuestions = 0;
-
-  monthData.weeks.forEach((week) => {
-    const weekStart = parseISO(week.dateRange.start);
-    const weekEnd = parseISO(week.dateRange.end);
-
-    let currentDate = weekStart;
-    while (currentDate <= weekEnd) {
-      const dateISO = toISODate(currentDate);
-      const daily = progress.daily[dateISO];
-
-      if (daily) {
-        // Tamamlanan görevleri say
-        const completedTasks = daily.tasks.filter((t) => t.completed).length;
-        // Her tamamlanan görev için ortalama soru sayısı (tahmini)
-        solvedQuestions += completedTasks * 10; // Ortalama 10 soru/görev
-      }
-
-      currentDate = new Date(currentDate.getTime() + 24 * 60 * 60 * 1000);
-    }
-  });
-
-  // Aylık hedef (örnek: Haziran için 1890 soru)
-  const monthlyTarget = totalQuestions * 30; // Ayda ~30 gün, günde ortalama totalQuestions soru
-  const remaining = Math.max(0, monthlyTarget - solvedQuestions);
   const percentage =
-    monthlyTarget > 0
-      ? Math.round((solvedQuestions / monthlyTarget) * 100)
+    total > 0
+      ? Math.round((completed / total) * 100)
       : 0;
 
-  return { solved: solvedQuestions, remaining, percentage };
+  return {
+    completed,
+    total,
+    percentage,
+    currentTopic: currentTopic?.name,
+  };
 }
 
 /**
- * Şu anki aktif konuyu bul
+ * Bugünün konusunu bul
  */
-export function getCurrentTopic(subject: Subject): {
-  topic: string;
-  month: string;
-  progress: number;
-} | null {
+export function getCurrentTopic(subject: Subject): string | undefined {
+  const topics = getSubjectTopics(subject);
   const today = new Date();
-  const todayISO = toISODate(today);
 
-  // Study plan'da bugünün hangi haftada olduğunu bul
-  for (const month of studyPlan.months) {
-    for (const week of month.weeks) {
-      const weekStart = parseISO(week.dateRange.start);
-      const weekEnd = parseISO(week.dateRange.end);
+  const currentTopic = topics.find((topic) => {
+    const start = parseISO(topic.dateRange.start);
+    const end = parseISO(topic.dateRange.end);
+    return (
+      (isAfter(today, start) || isSameDay(today, start)) &&
+      (isBefore(today, end) || isSameDay(today, end))
+    );
+  });
 
-      if (today >= weekStart && today <= weekEnd) {
-        // Bu haftanın konusunu bul
-        const subjectKey = subject.toLowerCase() as keyof typeof week.subjects;
-        const topicName = week.subjects[subjectKey];
-
-        if (topicName) {
-          // Bu konunun ilerlemesini hesapla
-          const topics = subjectsData[subject]?.topics || [];
-          const topic = topics.find((t) => t.name === topicName);
-
-          if (topic) {
-            // Konu sırasına göre progress hesapla
-            const totalTopics = topics.length;
-            const currentOrder = topic.order;
-            const progress = Math.round((currentOrder / totalTopics) * 100);
-
-            return {
-              topic: topicName,
-              month: month.month,
-              progress: Math.min(progress, 100),
-            };
-          }
-        }
-      }
-    }
-  }
-
-  return null;
-}
-
-/**
- * Hafta sonu hedeflerini getir
- */
-export function getWeekendGoals(date: Date): Array<{
-  id: string;
-  title: string;
-  description: string;
-  day: string;
-  progress: number;
-}> {
-  const goals: Array<{
-    id: string;
-    title: string;
-    description: string;
-    day: string;
-    progress: number;
-  }> = [];
-
-  // Bugünün haftasını bul
-  for (const month of studyPlan.months) {
-    for (const week of month.weeks) {
-      const weekStart = parseISO(week.dateRange.start);
-      const weekEnd = parseISO(week.dateRange.end);
-
-      if (date >= weekStart && date <= weekEnd) {
-        // Hafta sonu hedefi varsa ekle
-        if (week.weeklyGoal) {
-          goals.push({
-            id: `goal-${week.dateRange.start}`,
-            title: week.weeklyGoal,
-            description: "Haftalık hedef görevi",
-            day: "Cumartesi",
-            progress: 0, // Gerçek implementasyonda progress hesaplanmalı
-          });
-        }
-      }
-    }
-  }
-
-  return goals;
+  return currentTopic?.name;
 }

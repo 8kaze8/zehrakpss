@@ -100,7 +100,7 @@ export default function CalendarPage() {
         <TodayTasksList date={selectedDate} />
 
         {/* Weekend Goals */}
-        <WeekendGoalsCard />
+          <WeekendGoalsCard currentDate={selectedDate} />
       </main>
       <FloatingActionButton onClick={() => setIsAddTaskOpen(true)} />
       <AddTaskModal

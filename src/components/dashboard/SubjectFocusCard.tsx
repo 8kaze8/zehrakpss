@@ -9,12 +9,22 @@ import React from "react";
 import { Card } from "@/components/shared/Card";
 import { ProgressBar } from "@/components/shared/ProgressBar";
 import { Button } from "@/components/shared/Button";
+import { getCurrentTopic } from "@/utils/progress-calculator";
+import { calculateSubjectProgress } from "@/utils/progress-calculator";
+import { useStudyProgressContext } from "@/context/StudyProgressContext";
+import type { Subject } from "@/types";
 
 export function SubjectFocusCard() {
-  // Örnek veri - gerçek implementasyonda study plan'dan gelecek
-  const subject = "Tarih";
-  const topic = "Türk-İslam Devletleri";
-  const progress = 42;
+  const { progress } = useStudyProgressContext();
+  
+  // Şu anki konuyu bul (Tarih dersi için)
+  const subject: Subject = "TARİH";
+  const currentTopic = getCurrentTopic(subject);
+  const subjectProgress = calculateSubjectProgress(subject, progress);
+  
+  // Eğer şu anki konu yoksa, ilk konuyu göster
+  const topic = currentTopic || subjectProgress.currentTopic || "Konu seçilmedi";
+  const progressPercentage = subjectProgress.percentage;
 
   return (
     <section className="px-6 pb-6">
@@ -40,9 +50,9 @@ export function SubjectFocusCard() {
           <div className="mt-4">
             <div className="mb-2 flex justify-between text-xs font-medium text-text-sub">
               <span>İlerleme</span>
-              <span>{progress}%</span>
+              <span>{progressPercentage}%</span>
             </div>
-            <ProgressBar percentage={progress} height="md" color="bg-purple-500" />
+            <ProgressBar percentage={progressPercentage} height="md" color="bg-purple-500" />
           </div>
           <Button
             variant="secondary"

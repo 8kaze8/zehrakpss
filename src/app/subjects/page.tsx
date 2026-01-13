@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { Card } from "@/components/shared/Card";
 import { ProgressBar } from "@/components/shared/ProgressBar";
-import { SUBJECT_COLORS, SUBJECT_ICONS, subjectsData } from "@/utils/constants";
+import { SUBJECT_COLORS, SUBJECT_ICONS, SUBJECT_QUESTION_COUNTS } from "@/utils/constants";
 import { calculateSubjectProgress } from "@/utils/progress-calculator";
 import { useStudyProgressContext } from "@/context/StudyProgressContext";
 import { cn } from "@/utils/cn";
@@ -39,7 +39,7 @@ export default function SubjectsPage() {
             const colors = SUBJECT_COLORS[subject];
             const icon = SUBJECT_ICONS[subject];
             const subjectProgress = calculateSubjectProgress(subject, progress);
-            const totalQuestions = subjectsData[subject]?.totalQuestions || 0;
+            const totalQuestions = SUBJECT_QUESTION_COUNTS[subject] || 0;
 
             return (
               <Card key={subject} className="hover:shadow-md transition-shadow duration-200">

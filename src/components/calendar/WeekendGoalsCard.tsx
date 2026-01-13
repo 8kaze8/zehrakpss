@@ -5,41 +5,95 @@
 
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
+import { parseISO, format, isWeekend, isSaturday, isSunday } from "date-fns";
+import { tr } from "date-fns/locale";
 import { Card } from "@/components/shared/Card";
 import { ProgressBar } from "@/components/shared/ProgressBar";
 import { Button } from "@/components/shared/Button";
+import { studyPlan } from "@/data/study-plan";
+import { useStudyProgressContext } from "@/context/StudyProgressContext";
 
 interface WeekendGoal {
   id: string;
   title: string;
   description: string;
   day: string;
+  date: string;
   progress: number;
 }
 
 interface WeekendGoalsCardProps {
-  goals?: WeekendGoal[];
+  currentDate?: Date;
 }
 
-export function WeekendGoalsCard({ goals }: WeekendGoalsCardProps) {
-  // Örnek veri - gerçek implementasyonda study plan'dan gelecek
-  const defaultGoals: WeekendGoal[] = goals || [
-    {
-      id: "weekend-1",
-      title: "Genel Yetenek Deneme 3",
-      description: "Sınav öncesi son tekrarlar",
-      day: "Cumartesi",
-      progress: 80,
-    },
-  ];
+export function WeekendGoalsCard({ currentDate = new Date() }: WeekendGoalsCardProps) {
+  const { progress } = useStudyProgressContext();
+
+  // Bu hafta için hafta sonu hedeflerini bul
+  const weekendGoals = useMemo(() => {
+    const goals: WeekendGoal[] = [];
+    const saturday = new Date(currentDate);
+    const sunday = new Date(currentDate);
+
+    // Bu haftanın cumartesi ve pazarını bul
+    while (!isSaturday(saturday)) {
+      saturday.setDate(saturday.getDate() + 1);
+    }
+    while (!isSunday(sunday)) {
+      sunday.setDate(sunday.getDate() + 1);
+    }
+
+    // Study plan'dan bu hafta için weekly goal'u bul
+    for (const month of studyPlan.months) {
+      for (const week of month.weeks) {
+        const weekStart = parseISO(week.dateRange.start);
+        const weekEnd = parseISO(week.dateRange.end);
+
+        if (
+          (currentDate >= weekStart && currentDate <= weekEnd) &&
+          week.weeklyGoal
+        ) {
+          // Hafta sonu günlerini kontrol et
+          if (saturday >= weekStart && saturday <= weekEnd) {
+            goals.push({
+              id: `weekend-${format(saturday, "yyyy-MM-dd")}`,
+              title: week.weeklyGoal,
+              description: "Hafta sonu deneme sınavı",
+              day: "Cumartesi",
+              date: format(saturday, "yyyy-MM-dd"),
+              progress: 0, // Progress hesaplanacak
+            });
+          }
+
+          if (sunday >= weekStart && sunday <= weekEnd) {
+            goals.push({
+              id: `weekend-${format(sunday, "yyyy-MM-dd")}`,
+              title: week.weeklyGoal,
+              description: "Hafta sonu deneme sınavı",
+              day: "Pazar",
+              date: format(sunday, "yyyy-MM-dd"),
+              progress: 0,
+            });
+          }
+          break;
+        }
+      }
+    }
+
+    return goals;
+  }, [currentDate]);
+
+  if (weekendGoals.length === 0) {
+    return null;
+  }
 
   return (
     <div className="px-4 mb-8">
       <h2 className="text-xl font-bold text-text-main dark:text-white tracking-tight mb-3">
         Hafta Sonu Hedefleri
       </h2>
-      {defaultGoals.map((goal) => (
+      {weekendGoals.map((goal) => (
         <Card
           key={goal.id}
           className="flex flex-col p-5 bg-gradient-to-br from-indigo-50 to-white dark:from-slate-800 dark:to-gray-800 border border-indigo-100 dark:border-indigo-900/30 mb-4"
@@ -56,7 +110,7 @@ export function WeekendGoalsCard({ goals }: WeekendGoalsCardProps) {
                   Deneme Sınavı
                 </span>
                 <span className="text-xs text-text-sub dark:text-slate-400 font-medium">
-                  {goal.day}
+                  {format(parseISO(goal.date), "EEEE", { locale: tr })}
                 </span>
               </div>
               <h3 className="text-lg font-bold text-text-main dark:text-white leading-tight">

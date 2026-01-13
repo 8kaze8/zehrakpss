@@ -49,5 +49,11 @@ export const SUBJECT_ICONS = {
   VATANDAŞLIK: "gavel",
 } as const;
 
-// Subjects data export
-export { subjectsData } from "@/data/subjects-data";
+// Subject question counts (from plan)
+export const SUBJECT_QUESTION_COUNTS = {
+  TARİH: 27,
+  COĞRAFYA: 18,
+  MATEMATİK: 30,
+  TÜRKÇE: 0, // Belirtilmemiş
+  VATANDAŞLIK: 0, // Belirtilmemiş
+} as const;

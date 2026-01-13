@@ -9,6 +9,7 @@ import React from "react";
 import { Card } from "@/components/shared/Card";
 import { ProgressBar } from "@/components/shared/ProgressBar";
 import { useStudyProgressContext } from "@/context/StudyProgressContext";
+import { calculateWeeklyProgress } from "@/utils/progress-calculator";
 import { getWeekId } from "@/utils/date";
 
 interface WeeklyProgressCardProps {
@@ -16,8 +17,8 @@ interface WeeklyProgressCardProps {
 }
 
 export function WeeklyProgressCard({ weekId }: WeeklyProgressCardProps) {
-  const { getWeeklyProgress } = useStudyProgressContext();
-  const progress = getWeeklyProgress(weekId);
+  const { progress } = useStudyProgressContext();
+  const weeklyProgress = calculateWeeklyProgress(weekId, progress);
 
   const getMotivationalMessage = (percentage: number): string => {
     if (percentage >= 75) return "Çok iyi gidiyorsun!";
@@ -38,7 +39,7 @@ export function WeeklyProgressCard({ weekId }: WeeklyProgressCardProps) {
               Haftalık Hedef
             </h2>
             <p className="text-sm text-text-sub dark:text-slate-400 mt-1">
-              Bu hafta planlanan çalışmaların %{progress.percentage}'i tamamlandı.
+              Bu hafta planlanan çalışmaların %{weeklyProgress.percentage}'i tamamlandı.
             </p>
           </div>
           <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 dark:bg-slate-800 text-primary">
@@ -47,7 +48,7 @@ export function WeeklyProgressCard({ weekId }: WeeklyProgressCardProps) {
         </div>
         
         <ProgressBar
-          percentage={progress.percentage}
+          percentage={weeklyProgress.percentage}
           height="md"
           color="bg-gradient-to-r from-primary to-blue-400"
           animated
@@ -56,7 +57,7 @@ export function WeeklyProgressCard({ weekId }: WeeklyProgressCardProps) {
         <div className="flex justify-between mt-2 text-xs font-medium text-text-sub dark:text-slate-500">
           <span>Başlangıç</span>
           <span className="text-primary dark:text-blue-400">
-            {getMotivationalMessage(progress.percentage)}
+            {getMotivationalMessage(weeklyProgress.percentage)}
           </span>
           <span>Hedef</span>
         </div>

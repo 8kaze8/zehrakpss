@@ -21,7 +21,7 @@ export function useDailyTasks(date: Date | string) {
   const tasks = useMemo(() => {
     const todayTasks: TodayTask[] = [];
     const routineTasks: RoutineTask[] = [];
-    const customTasks = getCustomTasks(date);
+    const customTasks = getCustomTasks(targetDate);
 
     let foundWeek = false;
 
@@ -43,7 +43,7 @@ export function useDailyTasks(date: Date | string) {
               id: `routine-paragraph-${dateISO}`,
               type: "paragraph",
               count: week.dailyRoutine.paragraphs,
-              completed: false,
+              completed: isTaskCompleted(`routine-paragraph-${dateISO}`, targetDate),
             });
           }
 
@@ -52,7 +52,7 @@ export function useDailyTasks(date: Date | string) {
               id: `routine-problem-${dateISO}`,
               type: "problem",
               count: week.dailyRoutine.problems,
-              completed: false,
+              completed: isTaskCompleted(`routine-problem-${dateISO}`, targetDate),
             });
           }
 
@@ -61,7 +61,7 @@ export function useDailyTasks(date: Date | string) {
               id: `routine-speed-${dateISO}`,
               type: "speed",
               count: week.dailyRoutine.speedQuestions,
-              completed: false,
+              completed: isTaskCompleted(`routine-speed-${dateISO}`, targetDate),
             });
           }
 
@@ -74,7 +74,7 @@ export function useDailyTasks(date: Date | string) {
               description: "Soru bankası çalışması",
               date: dateISO,
               type: "study",
-              completed: false,
+              completed: isTaskCompleted(`task-tarih-${dateISO}`, targetDate),
               timeSlot: {
                 start: "14:00",
                 end: "15:30",
@@ -90,7 +90,7 @@ export function useDailyTasks(date: Date | string) {
               description: "Konu tekrarı",
               date: dateISO,
               type: "study",
-              completed: false,
+              completed: isTaskCompleted(`task-cografya-${dateISO}`, targetDate),
               timeSlot: {
                 start: "16:00",
                 end: "17:30",
@@ -106,7 +106,7 @@ export function useDailyTasks(date: Date | string) {
               description: "Soru çözümü",
               date: dateISO,
               type: "study",
-              completed: false,
+              completed: isTaskCompleted(`task-matematik-${dateISO}`, targetDate),
               timeSlot: {
                 start: "19:00",
                 end: "20:00",
@@ -124,7 +124,7 @@ export function useDailyTasks(date: Date | string) {
                 : "Paragraf çalışması",
               date: dateISO,
               type: week.dailyRoutine.speedQuestions > 0 ? "speed" : "study",
-              completed: false,
+              completed: isTaskCompleted(`task-turkce-${dateISO}`, targetDate),
               requiresTimer: week.dailyRoutine.speedQuestions > 0,
               timerDuration: week.dailyRoutine.speedQuestions > 0 ? 900 : undefined, // 15 dakika
               timeSlot: {
@@ -148,7 +148,7 @@ export function useDailyTasks(date: Date | string) {
         description: customTask.description,
         date: customTask.date,
         type: customTask.type,
-        completed: isTaskCompleted(customTask.id, date),
+        completed: isTaskCompleted(customTask.id, targetDate),
         timeSlot: customTask.timeSlot,
       });
     });
@@ -162,7 +162,7 @@ export function useDailyTasks(date: Date | string) {
           id: `routine-paragraph-${dateISO}`,
           type: "paragraph",
           count: firstWeek.dailyRoutine.paragraphs,
-          completed: false,
+          completed: isTaskCompleted(`routine-paragraph-${dateISO}`, targetDate),
         });
       }
 
@@ -171,7 +171,7 @@ export function useDailyTasks(date: Date | string) {
           id: `routine-problem-${dateISO}`,
           type: "problem",
           count: firstWeek.dailyRoutine.problems,
-          completed: false,
+          completed: isTaskCompleted(`routine-problem-${dateISO}`, targetDate),
         });
       }
 
@@ -180,7 +180,7 @@ export function useDailyTasks(date: Date | string) {
           id: `routine-speed-${dateISO}`,
           type: "speed",
           count: firstWeek.dailyRoutine.speedQuestions,
-          completed: false,
+          completed: isTaskCompleted(`routine-speed-${dateISO}`, targetDate),
         });
       }
     }
