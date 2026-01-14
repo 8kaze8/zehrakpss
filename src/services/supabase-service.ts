@@ -3,15 +3,27 @@
  * CRUD operations for study progress
  */
 
-import { supabase, type DailyProgressRow, type CustomTaskRow, type ExamRow } from "@/lib/supabase";
-import type { UserProgress, TaskCompletion, DailyProgress } from "@/types";
-import type { CustomTask, Exam, Subject } from "@/types/task";
+import { getSupabase, type DailyProgressRow, type CustomTaskRow, type ExamRow } from "@/lib/supabase";
+import type { UserProgress, TaskCompletion, DailyProgress, CustomTask, Exam, Subject } from "@/types";
 import { logger } from "@/utils/logger";
 
 /**
  * Tüm progress verilerini getir
  */
 export async function fetchAllProgress(): Promise<UserProgress> {
+  const supabase = getSupabase();
+  
+  if (!supabase) {
+    logger.warn("Supabase not available, returning empty progress");
+    return {
+      daily: {},
+      weekly: {},
+      monthly: {},
+      customTasks: [],
+      exams: [],
+    };
+  }
+
   try {
     // Daily progress
     const { data: dailyData, error: dailyError } = await supabase
@@ -98,6 +110,12 @@ export async function saveTaskCompletion(
   taskId: string,
   completed: boolean
 ): Promise<void> {
+  const supabase = getSupabase();
+  if (!supabase) {
+    logger.warn("Supabase not available, skipping saveTaskCompletion");
+    return;
+  }
+
   try {
     // Bu tarihe ait kayıt var mı?
     const { data: existing } = await supabase
@@ -150,6 +168,11 @@ export async function saveTaskCompletion(
 export async function createCustomTask(
   task: Omit<CustomTask, "id" | "createdAt" | "completed">
 ): Promise<CustomTask> {
+  const supabase = getSupabase();
+  if (!supabase) {
+    throw new Error("Supabase not available");
+  }
+
   const { data, error } = await supabase
     .from("custom_tasks")
     .insert({
@@ -187,6 +210,12 @@ export async function createCustomTask(
  * Custom task sil
  */
 export async function deleteCustomTask(taskId: string): Promise<void> {
+  const supabase = getSupabase();
+  if (!supabase) {
+    logger.warn("Supabase not available, skipping deleteCustomTask");
+    return;
+  }
+
   const { error } = await supabase.from("custom_tasks").delete().eq("id", taskId);
   if (error) throw error;
 }
@@ -195,6 +224,12 @@ export async function deleteCustomTask(taskId: string): Promise<void> {
  * Custom task toggle
  */
 export async function toggleCustomTask(taskId: string, completed: boolean): Promise<void> {
+  const supabase = getSupabase();
+  if (!supabase) {
+    logger.warn("Supabase not available, skipping toggleCustomTask");
+    return;
+  }
+
   const { error } = await supabase
     .from("custom_tasks")
     .update({ completed })
@@ -208,6 +243,11 @@ export async function toggleCustomTask(taskId: string, completed: boolean): Prom
 export async function createExam(
   exam: Omit<Exam, "id" | "createdAt" | "completed">
 ): Promise<Exam> {
+  const supabase = getSupabase();
+  if (!supabase) {
+    throw new Error("Supabase not available");
+  }
+
   const { data, error } = await supabase
     .from("exams")
     .insert({
@@ -240,6 +280,12 @@ export async function createExam(
  * Exam sil
  */
 export async function deleteExam(examId: string): Promise<void> {
+  const supabase = getSupabase();
+  if (!supabase) {
+    logger.warn("Supabase not available, skipping deleteExam");
+    return;
+  }
+
   const { error } = await supabase.from("exams").delete().eq("id", examId);
   if (error) throw error;
 }
@@ -248,6 +294,12 @@ export async function deleteExam(examId: string): Promise<void> {
  * Exam tamamla
  */
 export async function completeExam(examId: string): Promise<void> {
+  const supabase = getSupabase();
+  if (!supabase) {
+    logger.warn("Supabase not available, skipping completeExam");
+    return;
+  }
+
   const { error } = await supabase.from("exams").update({ completed: true }).eq("id", examId);
   if (error) throw error;
 }

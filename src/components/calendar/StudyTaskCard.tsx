@@ -105,17 +105,19 @@ export function StudyTaskCard({
       </div>
 
       {/* Confirm Modal */}
-      <ConfirmModal
-        isOpen={showConfirm}
-        onClose={() => setShowConfirm(false)}
-        onConfirm={() => onDelete(task.id)}
-        title="Görevi Sil"
-        message={`"${task.title}" görevini silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`}
-        confirmText="Sil"
-        cancelText="İptal"
-        variant="danger"
-        icon="delete"
-      />
+      {onDelete && (
+        <ConfirmModal
+          isOpen={showConfirm}
+          onClose={() => setShowConfirm(false)}
+          onConfirm={() => onDelete(task.id)}
+          title="Görevi Sil"
+          message={`"${task.title}" görevini silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`}
+          confirmText="Sil"
+          cancelText="İptal"
+          variant="danger"
+          icon="delete"
+        />
+      )}
     </>
   );
 }

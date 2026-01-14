@@ -18,8 +18,8 @@ import type { Month } from "@/types";
 
 // Ay ismini index'e çevir
 function getMonthIndex(month: Month): number {
-  const months: Month[] = ["OCAK", "ŞUBAT", "MART", "NİSAN", "MAYIS", "HAZİRAN", "TEMMUZ", "AĞUSTOS", "EYLÜL", "EKİM", "KASIM", "ARALIK"];
-  return months.indexOf(month);
+  const ALL_MONTHS = ["OCAK", "ŞUBAT", "MART", "NİSAN", "MAYIS", "HAZİRAN", "TEMMUZ", "AĞUSTOS", "EYLÜL", "EKİM", "KASIM", "ARALIK"];
+  return ALL_MONTHS.indexOf(month);
 }
 
 export function MonthlyGoalWidget() {
@@ -45,19 +45,9 @@ export function MonthlyGoalWidget() {
   }
   
   // Aylık ilerlemeyi hesapla - progress değiştiğinde yeniden hesapla
-  // progress.daily'nin içeriğini serialize ederek değişikliği algıla
-  const progressDailySerialized = React.useMemo(() => {
-    return JSON.stringify(
-      Object.entries(progress.daily || {}).map(([date, daily]) => [
-        date,
-        daily.tasks?.filter(t => t.completed).length || 0
-      ])
-    );
-  }, [progress.daily]);
-  
   const monthlyProgress = React.useMemo(() => {
     return calculateMonthlyProgress(displayMonth, displayYear, progress);
-  }, [displayMonth, displayYear, progress, progressDailySerialized]);
+  }, [displayMonth, displayYear, progress]);
   
   const solvedQuestions = monthlyProgress.solvedQuestions;
   const remainingQuestions = monthlyProgress.remainingQuestions;

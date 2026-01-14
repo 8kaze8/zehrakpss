@@ -79,17 +79,19 @@ export function TaskItem({
       </div>
 
       {/* Confirm Modal */}
-      <ConfirmModal
-        isOpen={showConfirm}
-        onClose={() => setShowConfirm(false)}
-        onConfirm={() => onDelete(id)}
-        title="Görevi Sil"
-        message={`"${label}" görevini silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`}
-        confirmText="Sil"
-        cancelText="İptal"
-        variant="danger"
-        icon="delete"
-      />
+      {onDelete && (
+        <ConfirmModal
+          isOpen={showConfirm}
+          onClose={() => setShowConfirm(false)}
+          onConfirm={() => onDelete(id)}
+          title="Görevi Sil"
+          message={`"${label}" görevini silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`}
+          confirmText="Sil"
+          cancelText="İptal"
+          variant="danger"
+          icon="delete"
+        />
+      )}
     </>
   );
 }

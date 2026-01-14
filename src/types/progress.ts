@@ -8,7 +8,7 @@ import { CustomTask, Exam } from "./task";
 
 export interface TaskCompletion {
   taskId: string;
-  completedAt: string; // ISO timestamp
+  completedAt?: string; // ISO timestamp (only when completed)
   completed: boolean;
 }
 

@@ -17,8 +17,10 @@ import type {
   WeeklyProgress,
   MonthlyProgress,
   Month,
+  Subject,
+  CustomTask,
+  Exam,
 } from "@/types";
-import type { CustomTask, Subject, Exam } from "@/types/task";
 
 // Backend modu - env'den oku
 const USE_SUPABASE = process.env.NEXT_PUBLIC_USE_SUPABASE === "true";
