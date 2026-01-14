@@ -118,7 +118,7 @@ export default function SubjectDetailPage() {
               {subject}
             </h1>
             <p className="text-sm text-text-sub dark:text-slate-400 mt-1">
-              {subjectData.completedTopics} / {subjectData.totalTopics} konu tamamlandı
+              {subjectData.completed} / {subjectData.total} konu tamamlandı
             </p>
           </div>
         </div>

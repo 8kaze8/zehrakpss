@@ -249,7 +249,8 @@ export function useDailyTasks(date: Date | string) {
       studyTasks: todayTasks,
       routineTasks,
     };
-  }, [targetDate, dateISO, getCustomTasks, isTaskCompleted, currentMonth, progress.daily]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetDate, dateISO, getCustomTasks, isTaskCompleted, currentMonth]);
 
   return tasks;
 }
