@@ -6,7 +6,7 @@
 import { useMemo } from "react";
 import { getOrInitializeProgress } from "@/utils/storage";
 import { getWeekId, getMonthYearKey, toISODate } from "@/utils/date";
-import type { UserProgress, TaskCompletion, WeeklyProgress, MonthlyProgress } from "@/types";
+import type { UserProgress, TaskCompletion, WeeklyProgress, MonthlyProgress, Month } from "@/types";
 
 /**
  * Progress yönetimi için hook
@@ -125,7 +125,7 @@ export function useStudyProgress() {
 
     // Varsayılan değerler (gerçek implementasyonda hesaplanmalı)
     return {
-      month: month as any,
+      month: month as Month,
       year,
       solvedQuestions: 0,
       remainingQuestions: 0,

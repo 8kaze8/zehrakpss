@@ -142,8 +142,9 @@ export function FloatingActionButton({
             style={{
               transitionDelay: isExpanded ? `${index * 50}ms` : "0ms",
             }}
+            aria-label={action.label}
           >
-            <span className="material-symbols-outlined text-xl">{action.icon}</span>
+            <span className="material-symbols-outlined text-xl" aria-hidden="true">{action.icon}</span>
             <span className="text-sm font-medium whitespace-nowrap">{action.label}</span>
           </button>
         ))}

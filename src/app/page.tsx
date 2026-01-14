@@ -22,7 +22,22 @@ export default function DashboardPage() {
   const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
   const [isAddExamOpen, setIsAddExamOpen] = useState(false);
 
-  const { addCustomTask, addExam } = useStudyProgressContext();
+  const { addCustomTask, addExam, isLoading } = useStudyProgressContext();
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <>
+        <Header />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-3">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <span className="text-sm text-text-sub dark:text-slate-400">Yükleniyor...</span>
+          </div>
+        </main>
+      </>
+    );
+  }
 
   const handleAddTask = (task: {
     title: string;

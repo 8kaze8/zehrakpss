@@ -20,7 +20,22 @@ const subjects: Subject[] = ["TARİH", "COĞRAFYA", "MATEMATİK", "TÜRKÇE", "V
 
 export default function SubjectsPage() {
   const router = useRouter();
-  const { progress } = useStudyProgressContext();
+  const { progress, isLoading } = useStudyProgressContext();
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <>
+        <Header />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-3">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <span className="text-sm text-text-sub dark:text-slate-400">Yükleniyor...</span>
+          </div>
+        </main>
+      </>
+    );
+  }
 
   const handleViewTopics = (subject: Subject) => {
     const slug = SUBJECT_TO_SLUG[subject] || subject.toLowerCase();
@@ -92,11 +107,13 @@ export default function SubjectsPage() {
                           colors.bg,
                           colors.text
                         )}
+                        aria-label={`${subject} konularını görüntüle`}
                       >
                         Konuları Gör
                       </button>
                       <button
                         className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 dark:bg-gray-700 text-text-main dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-200"
+                        aria-label={`${subject} için soru çöz`}
                       >
                         Soru Çöz
                       </button>

@@ -5,14 +5,13 @@
 
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { Card } from "@/components/shared/Card";
 import { ProgressBar } from "@/components/shared/ProgressBar";
-import { Button } from "@/components/shared/Button";
 import { SUBJECT_COLORS, SUBJECT_ICONS, SUBJECT_SLUG_MAP } from "@/utils/constants";
-import { getSubjectTopics } from "@/data/subjects";
+import { getSubjectTopics, type SubjectTopic } from "@/data/subjects";
 import { calculateSubjectProgress } from "@/utils/progress-calculator";
 import { useStudyProgressContext } from "@/context/StudyProgressContext";
 import { formatDate } from "@/utils/date";
@@ -23,7 +22,7 @@ import { parseISO, isBefore, isAfter, isSameDay } from "date-fns";
 export default function SubjectDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { progress } = useStudyProgressContext();
+  const { progress, isLoading } = useStudyProgressContext();
   const [isValid, setIsValid] = React.useState(true);
 
   const subjectParam = params.subject as string;
@@ -41,31 +40,16 @@ export default function SubjectDetailPage() {
     setIsValid(true);
   }, [subject, router]);
 
-  const validSubjects: Subject[] = ["TARİH", "COĞRAFYA", "MATEMATİK", "TÜRKÇE", "VATANDAŞLIK"];
-  if (!isValid || !validSubjects.includes(subject)) {
-    return null;
-  }
-
-  const topics = getSubjectTopics(subject);
-  const subjectData = calculateSubjectProgress(subject, progress);
+  // useMemo ile topics'i cache'le
+  const topics = useMemo(() => getSubjectTopics(subject), [subject]);
+  const subjectData = useMemo(() => calculateSubjectProgress(subject, progress), [subject, progress]);
   const colors = SUBJECT_COLORS[subject];
   const icon = SUBJECT_ICONS[subject];
   
-  // Debug: topics boş mu kontrol et
-  useEffect(() => {
-    console.log('SubjectDetailPage:', { 
-      subject, 
-      topicsCount: topics.length, 
-      firstTopics: topics.slice(0, 3).map(t => t.name) // İlk 3'ün isimlerini göster
-    });
-    if (topics.length === 0) {
-      console.warn('⚠️ No topics found for subject:', subject);
-    }
-  }, [subject, topics.length]);
+  const today = useMemo(() => new Date(), []);
 
-  const today = new Date();
-
-  const getTopicStatus = (topic: any) => {
+  // useCallback ile fonksiyonu memoize et
+  const getTopicStatus = useCallback((topic: SubjectTopic): "completed" | "current" | "past" | "upcoming" => {
     const start = parseISO(topic.dateRange.start);
     const end = parseISO(topic.dateRange.end);
     const taskId = `task-${subject.toLowerCase()}-${topic.dateRange.start}`;
@@ -81,7 +65,28 @@ export default function SubjectDetailPage() {
       return "current";
     }
     return "upcoming";
-  };
+  }, [subject, progress.daily, today]);
+
+  const validSubjects: Subject[] = ["TARİH", "COĞRAFYA", "MATEMATİK", "TÜRKÇE", "VATANDAŞLIK"];
+  
+  // Loading state
+  if (isLoading) {
+    return (
+      <>
+        <Header />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-3">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <span className="text-sm text-text-sub dark:text-slate-400">Yükleniyor...</span>
+          </div>
+        </main>
+      </>
+    );
+  }
+
+  if (!isValid || !validSubjects.includes(subject)) {
+    return null;
+  }
 
   return (
     <>
@@ -91,8 +96,9 @@ export default function SubjectDetailPage() {
         <button
           onClick={() => router.back()}
           className="flex items-center gap-2 mb-6 text-text-sub dark:text-slate-400 hover:text-text-main dark:hover:text-white transition-colors"
+          aria-label="Geri git"
         >
-          <span className="material-symbols-outlined">arrow_back</span>
+          <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>
           <span className="text-sm font-medium">Geri</span>
         </button>
 

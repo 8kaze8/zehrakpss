@@ -9,6 +9,7 @@ import React, { useState, useEffect } from "react";
 import { cn } from "@/utils/cn";
 import { Button } from "./Button";
 import { SUBJECT_COLORS, SUBJECT_ICONS } from "@/utils/constants";
+import { useToast } from "@/context/ToastContext";
 import type { Subject } from "@/types";
 
 interface AddTaskModalProps {
@@ -40,6 +41,7 @@ export function AddTaskModal({
   onAddTask,
   defaultDate = new Date(),
 }: AddTaskModalProps) {
+  const { showToast } = useToast();
   const [title, setTitle] = useState("");
   const [subject, setSubject] = useState<Subject>("TARİH");
   const [description, setDescription] = useState("");
@@ -92,7 +94,7 @@ export function AddTaskModal({
     e.preventDefault();
     
     if (!title.trim()) {
-      alert("Lütfen görev başlığı girin.");
+      showToast({ message: "Lütfen görev başlığı girin.", type: "warning" });
       return;
     }
 

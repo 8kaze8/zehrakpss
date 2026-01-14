@@ -41,6 +41,8 @@ export function BottomNavigation() {
                   ? "text-primary"
                   : "text-text-sub hover:text-primary dark:text-gray-400 dark:hover:text-white"
               )}
+              aria-label={item.label}
+              aria-current={isActive ? "page" : undefined}
             >
               <span
                 className={cn(
@@ -48,6 +50,7 @@ export function BottomNavigation() {
                   isActive && "filled"
                 )}
                 style={{ fontSize: 24 }}
+                aria-hidden="true"
               >
                 {item.icon}
               </span>
