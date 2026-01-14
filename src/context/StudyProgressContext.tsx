@@ -1,6 +1,7 @@
 /**
  * StudyProgressContext
  * Çalışma ilerlemesi için global state management
+ * Supabase veya localStorage kullanır
  */
 
 "use client";
@@ -8,6 +9,8 @@
 import React, { createContext, useContext, useReducer, useEffect, useCallback, useMemo } from "react";
 import { saveStoredProgress, getOrInitializeProgress } from "@/utils/storage";
 import { toISODate, getWeekId, getMonthYearKey } from "@/utils/date";
+import * as supabaseService from "@/services/supabase-service";
+import { logger } from "@/utils/logger";
 import type {
   UserProgress,
   TaskCompletion,
@@ -16,6 +19,9 @@ import type {
   Month,
 } from "@/types";
 import type { CustomTask, Subject, Exam } from "@/types/task";
+
+// Backend modu - env'den oku
+const USE_SUPABASE = process.env.NEXT_PUBLIC_USE_SUPABASE === "true";
 
 interface StudyProgressState {
   progress: UserProgress;
@@ -71,8 +77,6 @@ function progressReducer(
       }
 
       const taskIndex = daily[date].tasks.findIndex((t) => t.taskId === taskId);
-
-      // Yeni tasks array oluştur (immutability için)
       const newTasks = [...daily[date].tasks];
 
       if (taskIndex !== -1) {
@@ -89,7 +93,6 @@ function progressReducer(
         });
       }
 
-      // Yeni daily[date] objesi oluştur
       daily[date] = {
         ...daily[date],
         tasks: newTasks,
@@ -110,12 +113,10 @@ function progressReducer(
       const daily = { ...newProgress.daily };
 
       if (daily[date]) {
-        // Yeni tasks array oluştur (immutability için)
         const newTasks = daily[date].tasks.map((t) =>
           t.taskId === taskId ? { ...t, completed: false } : t
         );
         
-        // Yeni daily[date] objesi oluştur
         daily[date] = {
           ...daily[date],
           tasks: newTasks,
@@ -250,40 +251,69 @@ const StudyProgressContext = createContext<StudyProgressContextValue | undefined
 export function StudyProgressProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(progressReducer, initialState);
 
-  // Load progress from localStorage on mount
+  // Load progress on mount
   useEffect(() => {
-    const storedProgress = getOrInitializeProgress();
-    dispatch({ type: "LOAD_PROGRESS", payload: storedProgress });
+    async function loadProgress() {
+      try {
+        if (USE_SUPABASE) {
+          logger.log("Loading from Supabase...");
+          const progress = await supabaseService.fetchAllProgress();
+          dispatch({ type: "LOAD_PROGRESS", payload: progress });
+        } else {
+          const storedProgress = getOrInitializeProgress();
+          dispatch({ type: "LOAD_PROGRESS", payload: storedProgress });
+        }
+      } catch (error) {
+        logger.error("Load progress error:", error);
+        // Fallback to localStorage
+        const storedProgress = getOrInitializeProgress();
+        dispatch({ type: "LOAD_PROGRESS", payload: storedProgress });
+      }
+    }
+    loadProgress();
   }, []);
 
-  // Save progress to localStorage whenever it changes (debounced)
+  // Save to localStorage when not using Supabase
   useEffect(() => {
-    if (!state.isLoading) {
+    if (!state.isLoading && !USE_SUPABASE) {
       const timeoutId = setTimeout(() => {
         saveStoredProgress(state.progress);
-      }, 500); // Debounce 500ms
-
+      }, 500);
       return () => clearTimeout(timeoutId);
     }
   }, [state.progress, state.isLoading]);
 
-  const completeTask = useCallback((taskId: string, date: Date | string = new Date()) => {
+  const completeTask = useCallback(async (taskId: string, date: Date | string = new Date()) => {
     const dateISO = toISODate(date);
     dispatch({ type: "COMPLETE_TASK", payload: { taskId, date: dateISO } });
+
+    if (USE_SUPABASE) {
+      try {
+        await supabaseService.saveTaskCompletion(dateISO, taskId, true);
+      } catch (error) {
+        logger.error("Complete task error:", error);
+      }
+    }
   }, []);
 
-  const uncompleteTask = useCallback((taskId: string, date: Date | string = new Date()) => {
+  const uncompleteTask = useCallback(async (taskId: string, date: Date | string = new Date()) => {
     const dateISO = toISODate(date);
     dispatch({ type: "UNCOMPLETE_TASK", payload: { taskId, date: dateISO } });
+
+    if (USE_SUPABASE) {
+      try {
+        await supabaseService.saveTaskCompletion(dateISO, taskId, false);
+      } catch (error) {
+        logger.error("Uncomplete task error:", error);
+      }
+    }
   }, []);
 
   const isTaskCompleted = useCallback(
     (taskId: string, date: Date | string = new Date()): boolean => {
       const dateISO = toISODate(date);
       const daily = state.progress.daily[dateISO];
-
       if (!daily) return false;
-
       return daily.tasks.some((t) => t.taskId === taskId && t.completed);
     },
     [state.progress]
@@ -295,7 +325,6 @@ export function StudyProgressProvider({ children }: { children: React.ReactNode 
         return state.progress.weekly[weekId];
       }
 
-      // Calculate weekly progress
       const weekly: WeeklyProgress = {
         weekId,
         completedTasks: 0,
@@ -325,7 +354,6 @@ export function StudyProgressProvider({ children }: { children: React.ReactNode 
         return state.progress.monthly[key];
       }
 
-      // Default values (should be calculated from study plan)
       return {
         month,
         year,
@@ -338,20 +366,37 @@ export function StudyProgressProvider({ children }: { children: React.ReactNode 
   );
 
   const addCustomTask = useCallback(
-    (task: Omit<CustomTask, "id" | "createdAt" | "completed">) => {
-      const newTask: CustomTask = {
-        ...task,
-        id: `custom-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        createdAt: new Date().toISOString(),
-        completed: false,
-      };
-      dispatch({ type: "ADD_CUSTOM_TASK", payload: newTask });
+    async (task: Omit<CustomTask, "id" | "createdAt" | "completed">) => {
+      if (USE_SUPABASE) {
+        try {
+          const newTask = await supabaseService.createCustomTask(task);
+          dispatch({ type: "ADD_CUSTOM_TASK", payload: newTask });
+        } catch (error) {
+          logger.error("Add custom task error:", error);
+        }
+      } else {
+        const newTask: CustomTask = {
+          ...task,
+          id: `custom-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          createdAt: new Date().toISOString(),
+          completed: false,
+        };
+        dispatch({ type: "ADD_CUSTOM_TASK", payload: newTask });
+      }
     },
     []
   );
 
-  const deleteCustomTask = useCallback((taskId: string) => {
+  const deleteCustomTask = useCallback(async (taskId: string) => {
     dispatch({ type: "DELETE_CUSTOM_TASK", payload: taskId });
+
+    if (USE_SUPABASE) {
+      try {
+        await supabaseService.deleteCustomTask(taskId);
+      } catch (error) {
+        logger.error("Delete custom task error:", error);
+      }
+    }
   }, []);
 
   const getCustomTasks = useCallback(
@@ -365,26 +410,50 @@ export function StudyProgressProvider({ children }: { children: React.ReactNode 
     [state.progress]
   );
 
-  // Exam functions
   const addExam = useCallback(
-    (exam: Omit<Exam, "id" | "createdAt" | "completed">) => {
-      const newExam: Exam = {
-        ...exam,
-        id: `exam-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        createdAt: new Date().toISOString(),
-        completed: exam.results ? true : false,
-      };
-      dispatch({ type: "ADD_EXAM", payload: newExam });
+    async (exam: Omit<Exam, "id" | "createdAt" | "completed">) => {
+      if (USE_SUPABASE) {
+        try {
+          const newExam = await supabaseService.createExam(exam);
+          dispatch({ type: "ADD_EXAM", payload: newExam });
+        } catch (error) {
+          logger.error("Add exam error:", error);
+        }
+      } else {
+        const newExam: Exam = {
+          ...exam,
+          id: `exam-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          createdAt: new Date().toISOString(),
+          completed: exam.results ? true : false,
+        };
+        dispatch({ type: "ADD_EXAM", payload: newExam });
+      }
     },
     []
   );
 
-  const deleteExam = useCallback((examId: string) => {
+  const deleteExam = useCallback(async (examId: string) => {
     dispatch({ type: "DELETE_EXAM", payload: examId });
+
+    if (USE_SUPABASE) {
+      try {
+        await supabaseService.deleteExam(examId);
+      } catch (error) {
+        logger.error("Delete exam error:", error);
+      }
+    }
   }, []);
 
-  const completeExam = useCallback((examId: string) => {
+  const completeExam = useCallback(async (examId: string) => {
     dispatch({ type: "COMPLETE_EXAM", payload: examId });
+
+    if (USE_SUPABASE) {
+      try {
+        await supabaseService.completeExam(examId);
+      } catch (error) {
+        logger.error("Complete exam error:", error);
+      }
+    }
   }, []);
 
   const getExams = useCallback(
@@ -398,7 +467,6 @@ export function StudyProgressProvider({ children }: { children: React.ReactNode 
     [state.progress]
   );
 
-  // useMemo ile value objesini memoize et - sadece state değiştiğinde yeni obje oluştur
   const value: StudyProgressContextValue = useMemo(
     () => ({
       progress: state.progress,
