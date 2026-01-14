@@ -39,7 +39,7 @@ export function WeeklyProgressCard({ weekId }: WeeklyProgressCardProps) {
               Haftalık Hedef
             </h2>
             <p className="text-sm text-text-sub dark:text-slate-400 mt-1">
-              Bu hafta planlanan çalışmaların %{weeklyProgress.percentage}'i tamamlandı.
+              Bu hafta planlanan çalışmaların %{weeklyProgress.percentage}&apos;i tamamlandı.
             </p>
           </div>
           <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 dark:bg-slate-800 text-primary">

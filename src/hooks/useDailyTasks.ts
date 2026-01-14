@@ -187,9 +187,6 @@ export function useDailyTasks(date: Date | string) {
   const currentMonth = getMonth(targetDate);
   const { getCustomTasks, isTaskCompleted, progress } = useStudyProgressContext();
 
-  // Progress.daily referansını stable hale getirmek için JSON string karşılaştırması
-  const dailyProgressKey = JSON.stringify(progress.daily);
-
   // Bugünün görevlerini hesapla
   const tasks = useMemo(() => {
     let todayTasks: TodayTask[] = [];
@@ -252,7 +249,7 @@ export function useDailyTasks(date: Date | string) {
       studyTasks: todayTasks,
       routineTasks,
     };
-  }, [targetDate, dateISO, getCustomTasks, isTaskCompleted, dailyProgressKey, currentMonth]);
+  }, [targetDate, dateISO, getCustomTasks, isTaskCompleted, currentMonth, progress.daily]);
 
   return tasks;
 }

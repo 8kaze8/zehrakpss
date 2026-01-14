@@ -57,7 +57,7 @@ export function MonthlyGoalWidget() {
   
   const monthlyProgress = React.useMemo(() => {
     return calculateMonthlyProgress(displayMonth, displayYear, progress);
-  }, [displayMonth, displayYear, progressDailySerialized]);
+  }, [displayMonth, displayYear, progress, progressDailySerialized]);
   
   const solvedQuestions = monthlyProgress.solvedQuestions;
   const remainingQuestions = monthlyProgress.remainingQuestions;
