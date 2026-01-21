@@ -154,36 +154,110 @@ export default function ExamsPage() {
                   
                   {exam.results?.total && (
                     <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                      <div className="flex items-center justify-between">
-                        <div className="flex gap-6 text-sm">
-                          <div>
-                            <span className="text-text-sub dark:text-slate-400">Doğru: </span>
-                            <span className="font-semibold text-green-600 dark:text-green-400">
-                              {correct}
-                            </span>
+                      {exam.type === "general" && exam.results ? (
+                        // Genel deneme için her ders için net göster
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-2 gap-3 text-sm">
+                            {exam.results.turkce && (
+                              <div className="p-2 rounded-lg bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-text-sub dark:text-slate-400">Türkçe</span>
+                                  <span className="font-bold text-teal-600 dark:text-teal-400">
+                                    {exam.results.turkce.net.toFixed(2)}
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+                            {exam.results.matematik && (
+                              <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-text-sub dark:text-slate-400">Matematik</span>
+                                  <span className="font-bold text-blue-600 dark:text-blue-400">
+                                    {exam.results.matematik.net.toFixed(2)}
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+                            {exam.results.tarih && (
+                              <div className="p-2 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-text-sub dark:text-slate-400">Tarih</span>
+                                  <span className="font-bold text-orange-600 dark:text-orange-400">
+                                    {exam.results.tarih.net.toFixed(2)}
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+                            {exam.results.cografya && (
+                              <div className="p-2 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-text-sub dark:text-slate-400">Coğrafya</span>
+                                  <span className="font-bold text-green-600 dark:text-green-400">
+                                    {exam.results.cografya.net.toFixed(2)}
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+                            {exam.results.vatandaslik && (
+                              <div className="p-2 rounded-lg bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-text-sub dark:text-slate-400">Vatandaşlık</span>
+                                  <span className="font-bold text-purple-600 dark:text-purple-400">
+                                    {exam.results.vatandaslik.net.toFixed(2)}
+                                  </span>
+                                </div>
+                              </div>
+                            )}
                           </div>
-                          <div>
-                            <span className="text-text-sub dark:text-slate-400">Yanlış: </span>
-                            <span className="font-semibold text-red-600 dark:text-red-400">
-                              {wrong}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-text-sub dark:text-slate-400">Boş: </span>
-                            <span className="font-semibold text-text-sub dark:text-slate-400">
-                              {empty}
-                            </span>
+                          <div className="pt-3 mt-3 border-t border-gray-200 dark:border-gray-700">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-semibold text-text-main dark:text-white">
+                                Toplam Net
+                              </span>
+                              <span className="text-2xl font-bold text-primary dark:text-blue-400">
+                                {net.toFixed(2)}
+                              </span>
+                            </div>
+                            <div className="flex gap-4 text-xs text-text-sub dark:text-slate-400 mt-1">
+                              <span>Doğru: {correct}</span>
+                              <span>Yanlış: {wrong}</span>
+                              <span>Boş: {empty}</span>
+                            </div>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <span className="text-xs text-text-sub dark:text-slate-400 block mb-1">
-                            Net
-                          </span>
-                          <p className="text-2xl font-bold text-primary dark:text-blue-400">
-                            {net.toFixed(2)}
-                          </p>
+                      ) : (
+                        // Branş veya TG denemesi için normal gösterim
+                        <div className="flex items-center justify-between">
+                          <div className="flex gap-6 text-sm">
+                            <div>
+                              <span className="text-text-sub dark:text-slate-400">Doğru: </span>
+                              <span className="font-semibold text-green-600 dark:text-green-400">
+                                {correct}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-text-sub dark:text-slate-400">Yanlış: </span>
+                              <span className="font-semibold text-red-600 dark:text-red-400">
+                                {wrong}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-text-sub dark:text-slate-400">Boş: </span>
+                              <span className="font-semibold text-text-sub dark:text-slate-400">
+                                {empty}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-xs text-text-sub dark:text-slate-400 block mb-1">
+                              Net
+                            </span>
+                            <p className="text-2xl font-bold text-primary dark:text-blue-400">
+                              {net.toFixed(2)}
+                            </p>
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   )}
                   
@@ -209,18 +283,7 @@ export default function ExamsPage() {
             setIsModalOpen(false);
             setSelectedExam(null);
           }}
-          goal={{
-            id: selectedExam.id,
-            title: selectedExam.title,
-            description: selectedExam.type === "branch" && selectedExam.subject 
-              ? `${selectedExam.subject} Branş Denemesi`
-              : selectedExam.type === "tg"
-              ? "Türkiye Geneli Deneme"
-              : "Genel Deneme",
-            day: format(parseISO(selectedExam.date), "EEEE", { locale: tr }),
-            date: selectedExam.date,
-            progress: selectedExam.completed ? 100 : 0,
-          }}
+          exam={selectedExam}
         />
       )}
     </>

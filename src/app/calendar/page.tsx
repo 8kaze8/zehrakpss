@@ -15,6 +15,7 @@ import { TodayTasksList } from "@/components/calendar/TodayTasksList";
 import { WeekendGoalsCard } from "@/components/calendar/WeekendGoalsCard";
 import { FloatingActionButton } from "@/components/layout/FloatingActionButton";
 import { AddTaskModal } from "@/components/shared/AddTaskModal";
+import { AddExamModal } from "@/components/shared/AddExamModal";
 import { useStudyProgressContext } from "@/context/StudyProgressContext";
 import { getWeekId } from "@/utils/date";
 import type { Subject } from "@/types";
@@ -23,8 +24,9 @@ export default function CalendarPage() {
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
+  const [isAddExamOpen, setIsAddExamOpen] = useState(false);
 
-  const { addCustomTask, isLoading } = useStudyProgressContext();
+  const { addCustomTask, addExam, isLoading } = useStudyProgressContext();
 
   // Loading state
   if (isLoading) {
@@ -56,6 +58,29 @@ export default function CalendarPage() {
       date: task.date,
       timeSlot: task.timeSlot,
       type: task.type,
+    });
+  };
+
+  const handleAddExam = (exam: {
+    title: string;
+    type: "branch" | "general" | "tg";
+    subject?: Subject;
+    date: string;
+    results?: {
+      turkce?: { correct: number; wrong: number; empty: number; net: number };
+      matematik?: { correct: number; wrong: number; empty: number; net: number };
+      tarih?: { correct: number; wrong: number; empty: number; net: number };
+      cografya?: { correct: number; wrong: number; empty: number; net: number };
+      vatandaslik?: { correct: number; wrong: number; empty: number; net: number };
+      total?: { correct: number; wrong: number; empty: number; net: number };
+    };
+  }) => {
+    addExam({
+      title: exam.title,
+      type: exam.type,
+      subject: exam.subject,
+      date: exam.date,
+      results: exam.results,
     });
   };
 
@@ -118,11 +143,21 @@ export default function CalendarPage() {
         {/* Weekend Goals */}
           <WeekendGoalsCard currentDate={selectedDate} />
       </main>
-      <FloatingActionButton onClick={() => setIsAddTaskOpen(true)} />
+      <FloatingActionButton
+        expandable
+        onAddTask={() => setIsAddTaskOpen(true)}
+        onAddExam={() => setIsAddExamOpen(true)}
+      />
       <AddTaskModal
         isOpen={isAddTaskOpen}
         onClose={() => setIsAddTaskOpen(false)}
         onAddTask={handleAddTask}
+        defaultDate={selectedDate}
+      />
+      <AddExamModal
+        isOpen={isAddExamOpen}
+        onClose={() => setIsAddExamOpen(false)}
+        onAddExam={handleAddExam}
         defaultDate={selectedDate}
       />
     </>

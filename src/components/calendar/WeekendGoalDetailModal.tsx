@@ -13,6 +13,7 @@ import { Button } from "@/components/shared/Button";
 import { Checkbox } from "@/components/shared/Checkbox";
 import { useStudyProgressContext } from "@/context/StudyProgressContext";
 import type { Subject } from "@/types";
+import type { Exam } from "@/types/task";
 
 interface WeekendGoal {
   id: string;
@@ -26,13 +27,15 @@ interface WeekendGoal {
 interface WeekendGoalDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
-  goal: WeekendGoal | null;
+  goal?: WeekendGoal | null;
+  exam?: Exam | null;
 }
 
 export function WeekendGoalDetailModal({
   isOpen,
   onClose,
   goal,
+  exam: examProp,
 }: WeekendGoalDetailModalProps) {
   const { progress, addExam, updateExam, deleteExam, getExams } = useStudyProgressContext();
   
@@ -42,8 +45,18 @@ export function WeekendGoalDetailModal({
   const [wrong, setWrong] = useState("");
   const [empty, setEmpty] = useState("");
   
-  // Bu tarihe ait sınav var mı? (goal.id ile eşleşen exam'ı bul)
+  // Genel deneme için her ders için sonuçlar
+  const [generalResults, setGeneralResults] = useState<Record<string, { correct: string; wrong: string; empty: string }>>({
+    turkce: { correct: "", wrong: "", empty: "" },
+    matematik: { correct: "", wrong: "", empty: "" },
+    tarih: { correct: "", wrong: "", empty: "" },
+    cografya: { correct: "", wrong: "", empty: "" },
+    vatandaslik: { correct: "", wrong: "", empty: "" },
+  });
+  
+  // Exam prop'u varsa onu kullan, yoksa goal'dan exam'i bul
   const existingExam = useMemo(() => {
+    if (examProp) return examProp;
     if (!goal) return null;
     const exams = getExams();
     // Önce goal.id ile eşleşen exam'ı bul
@@ -51,24 +64,54 @@ export function WeekendGoalDetailModal({
     if (examById) return examById;
     // Yoksa tarihe göre bul
     return exams.find((exam) => exam.date === goal.date) || null;
-  }, [goal, getExams, progress.exams]);
+  }, [goal, examProp, getExams, progress.exams]);
+  
+  const currentExam = existingExam;
   
   // Modal açıldığında mevcut sınav verilerini yükle
   useEffect(() => {
-    if (isOpen && existingExam) {
-      setIsCompleted(existingExam.completed);
-      if (existingExam.results?.total) {
-        setCorrect(existingExam.results.total.correct.toString());
-        setWrong(existingExam.results.total.wrong.toString());
-        setEmpty(existingExam.results.total.empty.toString());
+    if (isOpen && currentExam) {
+      setIsCompleted(currentExam.completed);
+      if (currentExam.type === "general" && currentExam.results) {
+        // Genel deneme için her ders için sonuçları yükle
+        const newResults: Record<string, { correct: string; wrong: string; empty: string }> = {
+          turkce: { correct: "", wrong: "", empty: "" },
+          matematik: { correct: "", wrong: "", empty: "" },
+          tarih: { correct: "", wrong: "", empty: "" },
+          cografya: { correct: "", wrong: "", empty: "" },
+          vatandaslik: { correct: "", wrong: "", empty: "" },
+        };
+        
+        Object.keys(newResults).forEach((key) => {
+          const result = currentExam.results?.[key as keyof typeof currentExam.results];
+          if (result) {
+            newResults[key] = {
+              correct: result.correct.toString(),
+              wrong: result.wrong.toString(),
+              empty: result.empty.toString(),
+            };
+          }
+        });
+        setGeneralResults(newResults);
+      } else if (currentExam.results?.total) {
+        setCorrect(currentExam.results.total.correct.toString());
+        setWrong(currentExam.results.total.wrong.toString());
+        setEmpty(currentExam.results.total.empty.toString());
       }
     } else if (isOpen) {
       setIsCompleted(false);
       setCorrect("");
       setWrong("");
       setEmpty("");
+      setGeneralResults({
+        turkce: { correct: "", wrong: "", empty: "" },
+        matematik: { correct: "", wrong: "", empty: "" },
+        tarih: { correct: "", wrong: "", empty: "" },
+        cografya: { correct: "", wrong: "", empty: "" },
+        vatandaslik: { correct: "", wrong: "", empty: "" },
+      });
     }
-  }, [isOpen, existingExam]);
+  }, [isOpen, currentExam]);
   
   // ESC tuşu ile kapat
   useEffect(() => {
@@ -95,43 +138,135 @@ export function WeekendGoalDetailModal({
   }, [isOpen]);
   
   // Net hesapla: 4 yanlış 1 doğruyu götürüyor
+  const calculateNet = (correctVal: number, wrongVal: number): number => {
+    return Math.max(0, correctVal - wrongVal / 4);
+  };
+  
   const net = useMemo(() => {
     const c = parseInt(correct) || 0;
     const w = parseInt(wrong) || 0;
-    return Math.max(0, c - w / 4);
+    return calculateNet(c, w);
   }, [correct, wrong]);
   
+  // Genel deneme için her ders için net hesapla
+  const calculateSubjectNet = (subjectKey: string): number => {
+    const result = generalResults[subjectKey];
+    const c = parseInt(result.correct) || 0;
+    const w = parseInt(result.wrong) || 0;
+    return calculateNet(c, w);
+  };
+  
+  // Genel deneme için toplam net hesapla
+  const calculateTotalNet = (): number => {
+    let totalCorrect = 0;
+    let totalWrong = 0;
+    
+    Object.values(generalResults).forEach((result) => {
+      totalCorrect += parseInt(result.correct) || 0;
+      totalWrong += parseInt(result.wrong) || 0;
+    });
+    
+    return calculateNet(totalCorrect, totalWrong);
+  };
+  
+  // Genel deneme için toplam doğru/yanlış/boş
+  const calculateTotalStats = () => {
+    let totalCorrect = 0;
+    let totalWrong = 0;
+    let totalEmpty = 0;
+    
+    Object.values(generalResults).forEach((result) => {
+      totalCorrect += parseInt(result.correct) || 0;
+      totalWrong += parseInt(result.wrong) || 0;
+      totalEmpty += parseInt(result.empty) || 0;
+    });
+    
+    return { correct: totalCorrect, wrong: totalWrong, empty: totalEmpty };
+  };
+  
   const handleSave = async () => {
-    if (!goal) return;
+    if (!goal && !currentExam) return;
+    
+    const examToUse = currentExam || (goal ? {
+      id: goal.id,
+      title: goal.title,
+      type: "branch" as const,
+      date: goal.date,
+      completed: false,
+      createdAt: new Date().toISOString(),
+    } : null);
+    
+    if (!examToUse) return;
     
     // Checkbox kaldırıldıysa sınavı sil
     if (!isCompleted) {
-      if (existingExam) {
-        await deleteExam(existingExam.id);
+      if (currentExam) {
+        await deleteExam(currentExam.id);
       }
       onClose();
       return;
     }
     
     // Checkbox işaretliyse sonuçları kaydet
-    const results = correct && wrong
-      ? {
-          total: {
-            correct: parseInt(correct) || 0,
-            wrong: parseInt(wrong) || 0,
-            empty: parseInt(empty) || 0,
-            net: net,
-          },
-        }
-      : undefined;
+    let results: any = undefined;
     
-    if (existingExam) {
+    if (currentExam?.type === "general") {
+      // Genel deneme için her ders için sonuçlar
+      const subjectResults: any = {};
+      let totalCorrect = 0;
+      let totalWrong = 0;
+      let totalEmpty = 0;
+
+      Object.entries(generalResults).forEach(([key, value]) => {
+        const c = parseInt(value.correct) || 0;
+        const w = parseInt(value.wrong) || 0;
+        const e = parseInt(value.empty) || 0;
+        const net = calculateNet(c, w);
+
+        if (c > 0 || w > 0 || e > 0) {
+          subjectResults[key] = {
+            correct: c,
+            wrong: w,
+            empty: e,
+            net: net,
+          };
+        }
+
+        totalCorrect += c;
+        totalWrong += w;
+        totalEmpty += e;
+      });
+
+      results = {
+        ...subjectResults,
+        total: {
+          correct: totalCorrect,
+          wrong: totalWrong,
+          empty: totalEmpty,
+          net: calculateNet(totalCorrect, totalWrong),
+        },
+      };
+    } else {
+      // Branş veya TG denemesi için toplam sonuç
+      results = correct && wrong
+        ? {
+            total: {
+              correct: parseInt(correct) || 0,
+              wrong: parseInt(wrong) || 0,
+              empty: parseInt(empty) || 0,
+              net: net,
+            },
+          }
+        : undefined;
+    }
+    
+    if (currentExam) {
       // Mevcut sınavı güncelle
-      await updateExam(existingExam.id, {
+      await updateExam(currentExam.id, {
         completed: true,
         results: results as any,
       });
-    } else {
+    } else if (goal) {
       // Yeni sınav ekle
       await addExam({
         title: goal.title,
@@ -145,9 +280,18 @@ export function WeekendGoalDetailModal({
     onClose();
   };
   
-  if (!isOpen || !goal) return null;
+  if (!isOpen || (!goal && !examProp)) return null;
   
-  const formattedDate = format(parseISO(goal.date), "d MMMM yyyy, EEEE", { locale: tr });
+  const displayDate = currentExam ? currentExam.date : (goal?.date || "");
+  const formattedDate = format(parseISO(displayDate), "d MMMM yyyy, EEEE", { locale: tr });
+  const displayTitle = currentExam ? currentExam.title : (goal?.title || "");
+  const displayDescription = currentExam 
+    ? (currentExam.type === "branch" && currentExam.subject 
+        ? `${currentExam.subject} Branş Denemesi`
+        : currentExam.type === "tg"
+        ? "Türkiye Geneli Deneme"
+        : "Genel Deneme")
+    : (goal?.description || "");
   
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
@@ -186,10 +330,10 @@ export function WeekendGoalDetailModal({
           {/* Sınav Bilgileri */}
           <div>
             <h3 className="text-lg font-semibold text-text-main dark:text-white mb-2">
-              {goal.title}
+              {displayTitle}
             </h3>
             <p className="text-sm text-text-sub dark:text-slate-400">
-              {goal.description}
+              {displayDescription}
             </p>
           </div>
           
@@ -219,62 +363,161 @@ export function WeekendGoalDetailModal({
                 Net Hesaplayıcı
               </h4>
               
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-text-sub dark:text-slate-400 mb-1">
-                    Doğru
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={correct}
-                    onChange={(e) => setCorrect(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-text-main dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    placeholder="0"
-                  />
+              {currentExam?.type === "general" ? (
+                // Genel deneme için her ders için alanlar
+                <div className="space-y-3">
+                  {[
+                    { key: "turkce", label: "Türkçe", color: "teal" },
+                    { key: "matematik", label: "Matematik", color: "blue" },
+                    { key: "tarih", label: "Tarih", color: "orange" },
+                    { key: "cografya", label: "Coğrafya", color: "green" },
+                    { key: "vatandaslik", label: "Vatandaşlık", color: "purple" },
+                  ].map(({ key, label }) => {
+                    const result = generalResults[key];
+                    const subjectNet = calculateSubjectNet(key);
+                    
+                    return (
+                      <div key={key} className="p-3 rounded-lg bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-semibold text-text-main dark:text-white">
+                            {label}
+                          </span>
+                          <span className="text-xs font-bold text-primary dark:text-blue-400">
+                            Net: {subjectNet.toFixed(2)}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">
+                          <div>
+                            <label className="block text-xs text-green-600 dark:text-green-400 mb-1">
+                              Doğru
+                            </label>
+                            <input
+                              type="number"
+                              min="0"
+                              value={result.correct}
+                              onChange={(e) => setGeneralResults({
+                                ...generalResults,
+                                [key]: { ...result, correct: e.target.value }
+                              })}
+                              placeholder="0"
+                              className="w-full px-2 py-1.5 rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 focus:outline-none focus:ring-2 focus:ring-green-500/20 text-center text-sm font-bold"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-red-600 dark:text-red-400 mb-1">
+                              Yanlış
+                            </label>
+                            <input
+                              type="number"
+                              min="0"
+                              value={result.wrong}
+                              onChange={(e) => setGeneralResults({
+                                ...generalResults,
+                                [key]: { ...result, wrong: e.target.value }
+                              })}
+                              placeholder="0"
+                              className="w-full px-2 py-1.5 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 focus:outline-none focus:ring-2 focus:ring-red-500/20 text-center text-sm font-bold"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                              Boş
+                            </label>
+                            <input
+                              type="number"
+                              min="0"
+                              value={result.empty}
+                              onChange={(e) => setGeneralResults({
+                                ...generalResults,
+                                [key]: { ...result, empty: e.target.value }
+                              })}
+                              placeholder="0"
+                              className="w-full px-2 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-text-main dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-500/20 text-center text-sm font-bold"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  
+                  {/* Toplam Net */}
+                  <div className="mt-4 p-4 rounded-lg bg-primary/10 dark:bg-primary/20 border-2 border-primary/30">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-bold text-primary dark:text-blue-300">
+                        Toplam Net
+                      </span>
+                      <span className="text-2xl font-bold text-primary dark:text-blue-300">
+                        {calculateTotalNet().toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex gap-4 text-xs text-text-sub dark:text-slate-400">
+                      <span>Doğru: {calculateTotalStats().correct}</span>
+                      <span>Yanlış: {calculateTotalStats().wrong}</span>
+                      <span>Boş: {calculateTotalStats().empty}</span>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-text-sub dark:text-slate-400 mb-1">
-                    Yanlış
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={wrong}
-                    onChange={(e) => setWrong(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-text-main dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    placeholder="0"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-text-sub dark:text-slate-400 mb-1">
-                    Boş
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={empty}
-                    onChange={(e) => setEmpty(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-text-main dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    placeholder="0"
-                  />
-                </div>
-              </div>
-              
-              {/* Net Sonuç */}
-              <div className="mt-4 p-4 bg-white dark:bg-gray-800 rounded-lg border-2 border-primary/20">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-text-sub dark:text-slate-400">
-                    Net
-                  </span>
-                  <span className="text-2xl font-bold text-primary dark:text-blue-400">
-                    {net.toFixed(2)}
-                  </span>
-                </div>
-                <p className="text-xs text-text-sub dark:text-slate-400 mt-1">
-                  4 yanlış 1 doğruyu götürür
-                </p>
-              </div>
+              ) : (
+                // Branş veya TG denemesi için tek alan
+                <>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-text-sub dark:text-slate-400 mb-1">
+                        Doğru
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={correct}
+                        onChange={(e) => setCorrect(e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-text-main dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        placeholder="0"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-text-sub dark:text-slate-400 mb-1">
+                        Yanlış
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={wrong}
+                        onChange={(e) => setWrong(e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-text-main dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        placeholder="0"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-text-sub dark:text-slate-400 mb-1">
+                        Boş
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={empty}
+                        onChange={(e) => setEmpty(e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-text-main dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        placeholder="0"
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* Net Sonuç */}
+                  <div className="mt-4 p-4 bg-white dark:bg-gray-800 rounded-lg border-2 border-primary/20">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-text-sub dark:text-slate-400">
+                        Net
+                      </span>
+                      <span className="text-2xl font-bold text-primary dark:text-blue-400">
+                        {net.toFixed(2)}
+                      </span>
+                    </div>
+                    <p className="text-xs text-text-sub dark:text-slate-400 mt-1">
+                      4 yanlış 1 doğruyu götürür
+                    </p>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>

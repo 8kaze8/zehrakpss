@@ -98,34 +98,91 @@ export function ExamHistoryCard() {
                 
                 {exam.results?.total && (
                   <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center justify-between">
-                      <div className="flex gap-4 text-xs">
-                        <div>
-                          <span className="text-text-sub dark:text-slate-400">Doğru: </span>
-                          <span className="font-semibold text-green-600 dark:text-green-400">
-                            {correct}
-                          </span>
+                    {exam.type === "general" && exam.results ? (
+                      // Genel deneme için her ders için net göster
+                      <div className="space-y-2">
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          {exam.results.turkce && (
+                            <div className="flex justify-between">
+                              <span className="text-text-sub dark:text-slate-400">Türkçe:</span>
+                              <span className="font-semibold text-primary dark:text-blue-400">
+                                {exam.results.turkce.net.toFixed(2)}
+                              </span>
+                            </div>
+                          )}
+                          {exam.results.matematik && (
+                            <div className="flex justify-between">
+                              <span className="text-text-sub dark:text-slate-400">Matematik:</span>
+                              <span className="font-semibold text-primary dark:text-blue-400">
+                                {exam.results.matematik.net.toFixed(2)}
+                              </span>
+                            </div>
+                          )}
+                          {exam.results.tarih && (
+                            <div className="flex justify-between">
+                              <span className="text-text-sub dark:text-slate-400">Tarih:</span>
+                              <span className="font-semibold text-primary dark:text-blue-400">
+                                {exam.results.tarih.net.toFixed(2)}
+                              </span>
+                            </div>
+                          )}
+                          {exam.results.cografya && (
+                            <div className="flex justify-between">
+                              <span className="text-text-sub dark:text-slate-400">Coğrafya:</span>
+                              <span className="font-semibold text-primary dark:text-blue-400">
+                                {exam.results.cografya.net.toFixed(2)}
+                              </span>
+                            </div>
+                          )}
+                          {exam.results.vatandaslik && (
+                            <div className="flex justify-between">
+                              <span className="text-text-sub dark:text-slate-400">Vatandaşlık:</span>
+                              <span className="font-semibold text-primary dark:text-blue-400">
+                                {exam.results.vatandaslik.net.toFixed(2)}
+                              </span>
+                            </div>
+                          )}
                         </div>
-                        <div>
-                          <span className="text-text-sub dark:text-slate-400">Yanlış: </span>
-                          <span className="font-semibold text-red-600 dark:text-red-400">
-                            {wrong}
+                        <div className="pt-2 mt-2 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                          <span className="text-xs font-semibold text-text-main dark:text-white">
+                            Toplam Net
                           </span>
-                        </div>
-                        <div>
-                          <span className="text-text-sub dark:text-slate-400">Boş: </span>
-                          <span className="font-semibold text-text-sub dark:text-slate-400">
-                            {empty}
+                          <span className="text-lg font-bold text-primary dark:text-blue-400">
+                            {net.toFixed(2)}
                           </span>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <span className="text-xs text-text-sub dark:text-slate-400">Net</span>
-                        <p className="text-lg font-bold text-primary dark:text-blue-400">
-                          {net.toFixed(2)}
-                        </p>
+                    ) : (
+                      // Branş veya TG denemesi için normal gösterim
+                      <div className="flex items-center justify-between">
+                        <div className="flex gap-4 text-xs">
+                          <div>
+                            <span className="text-text-sub dark:text-slate-400">Doğru: </span>
+                            <span className="font-semibold text-green-600 dark:text-green-400">
+                              {correct}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-text-sub dark:text-slate-400">Yanlış: </span>
+                            <span className="font-semibold text-red-600 dark:text-red-400">
+                              {wrong}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-text-sub dark:text-slate-400">Boş: </span>
+                            <span className="font-semibold text-text-sub dark:text-slate-400">
+                              {empty}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-xs text-text-sub dark:text-slate-400">Net</span>
+                          <p className="text-lg font-bold text-primary dark:text-blue-400">
+                            {net.toFixed(2)}
+                          </p>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 )}
               </div>

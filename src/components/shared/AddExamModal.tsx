@@ -57,11 +57,20 @@ export function AddExamModal({
   const [subject, setSubject] = useState<Subject>("MATEMATİK");
   const [date, setDate] = useState(defaultDate.toISOString().split("T")[0]);
   
-  // Sonuçlar
+  // Branş denemesi için sonuçlar
   const [correct, setCorrect] = useState("");
   const [wrong, setWrong] = useState("");
   const [empty, setEmpty] = useState("");
   const [hasResults, setHasResults] = useState(false);
+  
+  // Genel deneme için her ders için sonuçlar
+  const [generalResults, setGeneralResults] = useState<Record<string, { correct: string; wrong: string; empty: string }>>({
+    turkce: { correct: "", wrong: "", empty: "" },
+    matematik: { correct: "", wrong: "", empty: "" },
+    tarih: { correct: "", wrong: "", empty: "" },
+    cografya: { correct: "", wrong: "", empty: "" },
+    vatandaslik: { correct: "", wrong: "", empty: "" },
+  });
 
   // ESC tuşu ile kapat
   useEffect(() => {
@@ -97,13 +106,54 @@ export function AddExamModal({
       setWrong("");
       setEmpty("");
       setHasResults(false);
+      setGeneralResults({
+        turkce: { correct: "", wrong: "", empty: "" },
+        matematik: { correct: "", wrong: "", empty: "" },
+        tarih: { correct: "", wrong: "", empty: "" },
+        cografya: { correct: "", wrong: "", empty: "" },
+        vatandaslik: { correct: "", wrong: "", empty: "" },
+      });
     }
   }, [isOpen]);
 
-  const calculateNet = (): number => {
-    const c = parseInt(correct) || 0;
-    const w = parseInt(wrong) || 0;
-    return Math.max(0, c - w / 4);
+  const calculateNet = (correctVal: number, wrongVal: number): number => {
+    return Math.max(0, correctVal - wrongVal / 4);
+  };
+  
+  // Genel deneme için her ders için net hesapla
+  const calculateSubjectNet = (subjectKey: string): number => {
+    const result = generalResults[subjectKey];
+    const c = parseInt(result.correct) || 0;
+    const w = parseInt(result.wrong) || 0;
+    return calculateNet(c, w);
+  };
+  
+  // Genel deneme için toplam net hesapla
+  const calculateTotalNet = (): number => {
+    let totalCorrect = 0;
+    let totalWrong = 0;
+    
+    Object.values(generalResults).forEach((result) => {
+      totalCorrect += parseInt(result.correct) || 0;
+      totalWrong += parseInt(result.wrong) || 0;
+    });
+    
+    return calculateNet(totalCorrect, totalWrong);
+  };
+  
+  // Genel deneme için toplam doğru/yanlış/boş
+  const calculateTotalStats = () => {
+    let totalCorrect = 0;
+    let totalWrong = 0;
+    let totalEmpty = 0;
+    
+    Object.values(generalResults).forEach((result) => {
+      totalCorrect += parseInt(result.correct) || 0;
+      totalWrong += parseInt(result.wrong) || 0;
+      totalEmpty += parseInt(result.empty) || 0;
+    });
+    
+    return { correct: totalCorrect, wrong: totalWrong, empty: totalEmpty };
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -116,16 +166,57 @@ export function AddExamModal({
           ? "Türkiye Geneli Deneme"
           : "Genel Deneme");
 
-    const results = hasResults
-      ? {
+    let results: any = undefined;
+
+    if (hasResults) {
+      if (examType === "general") {
+        // Genel deneme için her ders için sonuçlar
+        const subjectResults: any = {};
+        let totalCorrect = 0;
+        let totalWrong = 0;
+        let totalEmpty = 0;
+
+        Object.entries(generalResults).forEach(([key, value]) => {
+          const c = parseInt(value.correct) || 0;
+          const w = parseInt(value.wrong) || 0;
+          const e = parseInt(value.empty) || 0;
+          const net = calculateNet(c, w);
+
+          if (c > 0 || w > 0 || e > 0) {
+            subjectResults[key] = {
+              correct: c,
+              wrong: w,
+              empty: e,
+              net: net,
+            };
+          }
+
+          totalCorrect += c;
+          totalWrong += w;
+          totalEmpty += e;
+        });
+
+        results = {
+          ...subjectResults,
+          total: {
+            correct: totalCorrect,
+            wrong: totalWrong,
+            empty: totalEmpty,
+            net: calculateNet(totalCorrect, totalWrong),
+          },
+        };
+      } else {
+        // Branş veya TG denemesi için toplam sonuç
+        results = {
           total: {
             correct: parseInt(correct) || 0,
             wrong: parseInt(wrong) || 0,
             empty: parseInt(empty) || 0,
-            net: calculateNet(),
+            net: calculateNet(parseInt(correct) || 0, parseInt(wrong) || 0),
           },
-        }
-      : undefined;
+        };
+      }
+    }
 
     onAddExam({
       title: examTitle,
@@ -305,60 +396,160 @@ export function AddExamModal({
 
             {/* Sonuç Alanları */}
             {hasResults && (
-              <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 space-y-3">
+              <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 space-y-4">
                 <h4 className="text-sm font-bold text-text-main dark:text-white mb-3">
                   Sonuçlar
                 </h4>
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-xs text-green-600 dark:text-green-400 mb-1 font-medium">
-                      Doğru
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={correct}
-                      onChange={(e) => setCorrect(e.target.value)}
-                      placeholder="0"
-                      className="w-full px-3 py-2 rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 focus:outline-none focus:ring-2 focus:ring-green-500/20 text-center font-bold"
-                    />
+                
+                {examType === "general" ? (
+                  // Genel deneme için her ders için ayrı alanlar
+                  <div className="space-y-4">
+                    {[
+                      { key: "turkce", label: "Türkçe", color: "teal" },
+                      { key: "matematik", label: "Matematik", color: "blue" },
+                      { key: "tarih", label: "Tarih", color: "orange" },
+                      { key: "cografya", label: "Coğrafya", color: "green" },
+                      { key: "vatandaslik", label: "Vatandaşlık", color: "purple" },
+                    ].map(({ key, label, color }) => {
+                      const result = generalResults[key];
+                      const net = calculateSubjectNet(key);
+                      
+                      return (
+                        <div key={key} className="p-3 rounded-lg bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-semibold text-text-main dark:text-white">
+                              {label}
+                            </span>
+                            <span className="text-xs font-bold text-primary dark:text-blue-400">
+                              Net: {net.toFixed(2)}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            <div>
+                              <label className="block text-xs text-green-600 dark:text-green-400 mb-1">
+                                Doğru
+                              </label>
+                              <input
+                                type="number"
+                                min="0"
+                                value={result.correct}
+                                onChange={(e) => setGeneralResults({
+                                  ...generalResults,
+                                  [key]: { ...result, correct: e.target.value }
+                                })}
+                                placeholder="0"
+                                className="w-full px-2 py-1.5 rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 focus:outline-none focus:ring-2 focus:ring-green-500/20 text-center text-sm font-bold"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs text-red-600 dark:text-red-400 mb-1">
+                                Yanlış
+                              </label>
+                              <input
+                                type="number"
+                                min="0"
+                                value={result.wrong}
+                                onChange={(e) => setGeneralResults({
+                                  ...generalResults,
+                                  [key]: { ...result, wrong: e.target.value }
+                                })}
+                                placeholder="0"
+                                className="w-full px-2 py-1.5 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 focus:outline-none focus:ring-2 focus:ring-red-500/20 text-center text-sm font-bold"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                Boş
+                              </label>
+                              <input
+                                type="number"
+                                min="0"
+                                value={result.empty}
+                                onChange={(e) => setGeneralResults({
+                                  ...generalResults,
+                                  [key]: { ...result, empty: e.target.value }
+                                })}
+                                placeholder="0"
+                                className="w-full px-2 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-text-main dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-500/20 text-center text-sm font-bold"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    
+                    {/* Toplam Net */}
+                    <div className="mt-4 p-4 rounded-lg bg-primary/10 dark:bg-primary/20 border-2 border-primary/30">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-bold text-primary dark:text-blue-300">
+                          Toplam Net
+                        </span>
+                        <span className="text-2xl font-bold text-primary dark:text-blue-300">
+                          {calculateTotalNet().toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="flex gap-4 text-xs text-text-sub dark:text-slate-400">
+                        <span>Doğru: {calculateTotalStats().correct}</span>
+                        <span>Yanlış: {calculateTotalStats().wrong}</span>
+                        <span>Boş: {calculateTotalStats().empty}</span>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-xs text-red-600 dark:text-red-400 mb-1 font-medium">
-                      Yanlış
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={wrong}
-                      onChange={(e) => setWrong(e.target.value)}
-                      placeholder="0"
-                      className="w-full px-3 py-2 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 focus:outline-none focus:ring-2 focus:ring-red-500/20 text-center font-bold"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1 font-medium">
-                      Boş
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={empty}
-                      onChange={(e) => setEmpty(e.target.value)}
-                      placeholder="0"
-                      className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-text-main dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-500/20 text-center font-bold"
-                    />
-                  </div>
-                </div>
-                {/* Net Hesaplama */}
-                <div className="mt-3 p-3 rounded-lg bg-primary/10 dark:bg-primary/20 flex items-center justify-between">
-                  <span className="text-sm font-medium text-primary dark:text-blue-300">
-                    Hesaplanan Net
-                  </span>
-                  <span className="text-xl font-bold text-primary dark:text-blue-300">
-                    {calculateNet().toFixed(2)}
-                  </span>
-                </div>
+                ) : (
+                  // Branş veya TG denemesi için tek alan
+                  <>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-xs text-green-600 dark:text-green-400 mb-1 font-medium">
+                          Doğru
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={correct}
+                          onChange={(e) => setCorrect(e.target.value)}
+                          placeholder="0"
+                          className="w-full px-3 py-2 rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 focus:outline-none focus:ring-2 focus:ring-green-500/20 text-center font-bold"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-red-600 dark:text-red-400 mb-1 font-medium">
+                          Yanlış
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={wrong}
+                          onChange={(e) => setWrong(e.target.value)}
+                          placeholder="0"
+                          className="w-full px-3 py-2 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 focus:outline-none focus:ring-2 focus:ring-red-500/20 text-center font-bold"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1 font-medium">
+                          Boş
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={empty}
+                          onChange={(e) => setEmpty(e.target.value)}
+                          placeholder="0"
+                          className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-text-main dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-500/20 text-center font-bold"
+                        />
+                      </div>
+                    </div>
+                    {/* Net Hesaplama */}
+                    <div className="mt-3 p-3 rounded-lg bg-primary/10 dark:bg-primary/20 flex items-center justify-between">
+                      <span className="text-sm font-medium text-primary dark:text-blue-300">
+                        Hesaplanan Net
+                      </span>
+                      <span className="text-xl font-bold text-primary dark:text-blue-300">
+                        {calculateNet(parseInt(correct) || 0, parseInt(wrong) || 0).toFixed(2)}
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
             )}
 
