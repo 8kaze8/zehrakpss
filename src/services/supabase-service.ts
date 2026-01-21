@@ -4,7 +4,7 @@
  */
 
 import { getSupabase, type DailyProgressRow, type CustomTaskRow, type ExamRow, type TopicNoteRow } from "@/lib/supabase";
-import type { UserProgress, TaskCompletion, DailyProgress, CustomTask, Exam, Subject, TopicNote } from "@/types";
+import type { UserProgress, TaskCompletion, DailyProgress, CustomTask, Exam, Subject, TopicNote, ExamResult } from "@/types";
 import { logger } from "@/utils/logger";
 
 /**
@@ -21,6 +21,7 @@ export async function fetchAllProgress(): Promise<UserProgress> {
       monthly: {},
       customTasks: [],
       exams: [],
+      topicNotes: [],
     };
   }
 
@@ -45,6 +46,9 @@ export async function fetchAllProgress(): Promise<UserProgress> {
       .select("*");
 
     if (examsError) throw examsError;
+
+    // Topic Notes
+    const topicNotes = await fetchTopicNotes();
 
     // Transform daily progress
     const daily: Record<string, DailyProgress> = {};
@@ -89,6 +93,7 @@ export async function fetchAllProgress(): Promise<UserProgress> {
       monthly: {},
       customTasks,
       exams,
+      topicNotes,
     };
   } catch (error) {
     logger.error("Supabase fetch error:", error);
@@ -98,6 +103,7 @@ export async function fetchAllProgress(): Promise<UserProgress> {
       monthly: {},
       customTasks: [],
       exams: [],
+      topicNotes: [],
     };
   }
 }

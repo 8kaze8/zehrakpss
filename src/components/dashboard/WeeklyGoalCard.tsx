@@ -63,17 +63,11 @@ export function WeeklyGoalCard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const currentWeek = getCurrentWeek();
 
-  if (!currentWeek) {
-    return null;
-  }
-
-  const { weeklyGoal, weekNumber, dateRange } = currentWeek;
-  const examInfo = parseExamCount(weeklyGoal || "");
-
   // Hafta sonu günlerini bul (Cumartesi veya Pazar)
   const weekendDate = useMemo(() => {
-    const saturday = new Date(parseISO(dateRange.start));
-    const sunday = new Date(parseISO(dateRange.start));
+    if (!currentWeek) return new Date();
+    const saturday = new Date(parseISO(currentWeek.dateRange.start));
+    const sunday = new Date(parseISO(currentWeek.dateRange.start));
     
     // Bu haftanın cumartesi ve pazarını bul
     while (saturday.getDay() !== 6) {
@@ -89,11 +83,12 @@ export function WeeklyGoalCard() {
     const daysUntilSunday = Math.abs((sunday.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
     
     return daysUntilSaturday <= daysUntilSunday ? saturday : sunday;
-  }, [dateRange]);
+  }, [currentWeek]);
 
   // Hafta sonu hedefi için tamamlanmış exam'ları bul
   // Sadece hafta sonu hedefi tarihine eşleşen ve branch tipindeki denemeleri göster
   const weekExams = useMemo(() => {
+    if (!currentWeek) return [];
     const allExams = progress.exams || [];
     const weekendDateStr = format(weekendDate, "yyyy-MM-dd");
     
@@ -106,7 +101,14 @@ export function WeeklyGoalCard() {
         exam.type === "branch" // Sadece branch denemeleri
       );
     });
-  }, [progress.exams, weekendDate]);
+  }, [progress.exams, weekendDate, currentWeek]);
+
+  if (!currentWeek) {
+    return null;
+  }
+
+  const { weeklyGoal, weekNumber, dateRange } = currentWeek;
+  const examInfo = parseExamCount(weeklyGoal || "");
 
   // Tamamlanmış mı kontrol et
   const isCompleted = weekExams.length >= examInfo.count;
