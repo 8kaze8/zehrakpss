@@ -4,7 +4,7 @@
  */
 
 import { getSupabase, type DailyProgressRow, type CustomTaskRow, type ExamRow } from "@/lib/supabase";
-import type { UserProgress, TaskCompletion, DailyProgress, CustomTask, Exam, Subject } from "@/types";
+import type { UserProgress, TaskCompletion, DailyProgress, CustomTask, Exam, Subject, TopicNote } from "@/types";
 import { logger } from "@/utils/logger";
 
 /**
@@ -302,4 +302,59 @@ export async function completeExam(examId: string): Promise<void> {
 
   const { error } = await supabase.from("exams").update({ completed: true }).eq("id", examId);
   if (error) throw error;
+}
+
+/**
+ * Tüm topic notlarını getir
+ */
+export async function fetchTopicNotes(): Promise<TopicNote[]> {
+  const supabase = getSupabase();
+  
+  if (!supabase) {
+    logger.warn("Supabase not available, returning empty notes");
+    return [];
+  }
+
+  try {
+    // Şimdilik topic_notes tablosu yok, LocalStorage kullanılacak
+    // Gelecekte Supabase tablosu eklendiğinde buraya kod eklenecek
+    return [];
+  } catch (error) {
+    logger.error("Fetch topic notes error:", error);
+    return [];
+  }
+}
+
+/**
+ * Topic notu ekle
+ */
+export async function createTopicNote(
+  topicId: string,
+  subject: Subject,
+  content: string
+): Promise<TopicNote> {
+  const supabase = getSupabase();
+  
+  if (!supabase) {
+    // LocalStorage kullanılacak, bu fonksiyon context'te handle edilecek
+    throw new Error("Supabase not available, use LocalStorage");
+  }
+
+  // Gelecekte Supabase tablosu eklendiğinde buraya kod eklenecek
+  throw new Error("Not implemented yet");
+}
+
+/**
+ * Topic notu sil
+ */
+export async function deleteTopicNote(noteId: string): Promise<void> {
+  const supabase = getSupabase();
+  
+  if (!supabase) {
+    logger.warn("Supabase not available, skipping deleteTopicNote");
+    return;
+  }
+
+  // Gelecekte Supabase tablosu eklendiğinde buraya kod eklenecek
+  throw new Error("Not implemented yet");
 }

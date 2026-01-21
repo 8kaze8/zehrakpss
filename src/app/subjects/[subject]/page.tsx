@@ -5,11 +5,13 @@
 
 "use client";
 
-import React, { useEffect, useMemo, useCallback } from "react";
+import React, { useEffect, useMemo, useCallback, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { Card } from "@/components/shared/Card";
 import { ProgressBar } from "@/components/shared/ProgressBar";
+import { Checkbox } from "@/components/shared/Checkbox";
+import { TopicNotesModal } from "@/components/shared/TopicNotesModal";
 import { SUBJECT_COLORS, SUBJECT_ICONS, SUBJECT_SLUG_MAP } from "@/utils/constants";
 import { getSubjectTopics, type SubjectTopic } from "@/data/subjects";
 import { calculateSubjectProgress } from "@/utils/progress-calculator";
@@ -22,8 +24,19 @@ import { parseISO, isBefore, isAfter, isSameDay } from "date-fns";
 export default function SubjectDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { progress, isLoading } = useStudyProgressContext();
+  const { 
+    progress, 
+    isLoading, 
+    isTaskCompleted, 
+    completeTask, 
+    uncompleteTask,
+    addTopicNote,
+    deleteTopicNote,
+    getTopicNotes,
+  } = useStudyProgressContext();
   const [isValid, setIsValid] = React.useState(true);
+  const [selectedTopic, setSelectedTopic] = useState<SubjectTopic | null>(null);
+  const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
 
   const subjectParam = params.subject as string;
   // URL slug'ını gerçek Subject tipine çevir
@@ -55,9 +68,7 @@ export default function SubjectDetailPage() {
     const taskId = `task-${subject.toLowerCase()}-${topic.dateRange.start}`;
 
     // Tamamlanmış mı?
-    const isCompleted = Object.values(progress.daily).some((daily) =>
-      daily.tasks.some((t) => t.taskId === taskId && t.completed)
-    );
+    const isCompleted = isTaskCompleted(taskId, parseISO(topic.dateRange.start));
 
     if (isCompleted) return "completed";
     if (isAfter(today, end)) return "past";
@@ -65,7 +76,35 @@ export default function SubjectDetailPage() {
       return "current";
     }
     return "upcoming";
-  }, [subject, progress.daily, today]);
+  }, [subject, isTaskCompleted, today]);
+
+  // Konu tamamlama/uncompletion handler
+  const handleTopicToggle = useCallback((topic: SubjectTopic, e: React.MouseEvent) => {
+    e.stopPropagation(); // Checkbox tıklaması kartın onClick'ini tetiklemesin
+    const taskId = `task-${subject.toLowerCase()}-${topic.dateRange.start}`;
+    const topicDate = parseISO(topic.dateRange.start);
+    const isCompleted = isTaskCompleted(taskId, topicDate);
+
+    if (isCompleted) {
+      uncompleteTask(taskId, topicDate);
+    } else {
+      completeTask(taskId, topicDate);
+    }
+  }, [subject, isTaskCompleted, completeTask, uncompleteTask]);
+
+  // Konu kartına tıklandığında modal aç
+  const handleTopicClick = useCallback((topic: SubjectTopic) => {
+    setSelectedTopic(topic);
+    setIsNotesModalOpen(true);
+  }, []);
+
+  // Not ekleme handler
+  const handleAddNote = useCallback(async (topicId: string, content: string) => {
+    await addTopicNote(topicId, subject, content);
+  }, [subject, addTopicNote]);
+
+  // Tüm notları getir
+  const allNotes = useMemo(() => getTopicNotes(), [getTopicNotes]);
 
   const validSubjects: Subject[] = ["TARİH", "COĞRAFYA", "MATEMATİK", "TÜRKÇE", "VATANDAŞLIK"];
   
@@ -182,19 +221,42 @@ export default function SubjectDetailPage() {
 
             const style = statusStyles[status];
 
+            const taskId = `task-${subject.toLowerCase()}-${topic.dateRange.start}`;
+            const topicDate = parseISO(topic.dateRange.start);
+            const isTopicCompleted = isTaskCompleted(taskId, topicDate);
+
+            const topicNotesCount = allNotes.filter((note) => note.topicId === topic.id).length;
+
             return (
               <Card
                 key={topic.id}
+                onClick={() => handleTopicClick(topic)}
                 className={cn(
-                  "border-2 transition-all duration-200",
+                  "border-2 transition-all duration-200 cursor-pointer hover:shadow-md",
                   style.bg,
                   style.border
                 )}
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h3 className="text-base font-semibold text-text-main dark:text-white">
+                <div className="flex items-start gap-3">
+                  {/* Checkbox */}
+                  <div className="flex-shrink-0 pt-1" onClick={(e) => handleTopicToggle(topic, e)}>
+                    <Checkbox
+                      checked={isTopicCompleted}
+                      onChange={() => {}}
+                      size="lg"
+                      aria-label={`${topic.name} konusunu ${isTopicCompleted ? "tamamlanmamış" : "tamamlandı"} olarak işaretle`}
+                    />
+                  </div>
+
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                      <h3 className={cn(
+                        "text-base font-semibold",
+                        isTopicCompleted 
+                          ? "text-text-main dark:text-white line-through opacity-60" 
+                          : "text-text-main dark:text-white"
+                      )}>
                         {topic.name}
                       </h3>
                       <span
@@ -205,8 +267,16 @@ export default function SubjectDetailPage() {
                       >
                         {style.badgeText}
                       </span>
+                      {topicNotesCount > 0 && (
+                        <span className="flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-primary/10 text-primary dark:bg-primary/20 dark:text-blue-300">
+                          <span className="material-symbols-outlined text-sm">
+                            notes
+                          </span>
+                          {topicNotesCount}
+                        </span>
+                      )}
                     </div>
-                    <div className="flex items-center gap-4 text-xs text-text-sub dark:text-slate-400">
+                    <div className="flex items-center gap-4 text-xs text-text-sub dark:text-slate-400 flex-wrap">
                       <span className="flex items-center gap-1">
                         <span className="material-symbols-outlined text-sm">
                           calendar_month
@@ -222,13 +292,18 @@ export default function SubjectDetailPage() {
                       </span>
                     </div>
                   </div>
-                  {status === "completed" && (
-                    <div className="flex-shrink-0 ml-4">
-                      <span className="material-symbols-outlined text-green-600 dark:text-green-400 text-2xl">
+
+                  {/* Completed Icon & Notes Icon */}
+                  <div className="flex-shrink-0 ml-2 flex flex-col items-center gap-1">
+                    {isTopicCompleted && (
+                      <span className="material-symbols-outlined text-green-600 dark:text-green-400 text-xl">
                         check_circle
                       </span>
-                    </div>
-                  )}
+                    )}
+                    <span className="material-symbols-outlined text-text-sub dark:text-slate-400 text-lg">
+                      chevron_right
+                    </span>
+                  </div>
                 </div>
               </Card>
             );
@@ -246,6 +321,20 @@ export default function SubjectDetailPage() {
           </Card>
         )}
       </main>
+
+      {/* Topic Notes Modal */}
+      <TopicNotesModal
+        isOpen={isNotesModalOpen}
+        onClose={() => {
+          setIsNotesModalOpen(false);
+          setSelectedTopic(null);
+        }}
+        topic={selectedTopic}
+        subject={subject}
+        notes={allNotes}
+        onAddNote={handleAddNote}
+        onDeleteNote={deleteTopicNote}
+      />
     </>
   );
 }

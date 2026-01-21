@@ -80,6 +80,7 @@ export function initializeProgress(): UserProgress {
     monthly: {},
     customTasks: [],
     exams: [],
+    topicNotes: [],
   };
 }
 
@@ -88,5 +89,12 @@ export function initializeProgress(): UserProgress {
  */
 export function getOrInitializeProgress(): UserProgress {
   const stored = getStoredProgress();
-  return stored?.progress || initializeProgress();
+  const progress = stored?.progress || initializeProgress();
+  
+  // Eski verilerde topicNotes olmayabilir, ekle
+  if (!progress.topicNotes) {
+    progress.topicNotes = [];
+  }
+  
+  return progress;
 }

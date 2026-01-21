@@ -20,6 +20,7 @@ import type {
   Subject,
   CustomTask,
   Exam,
+  TopicNote,
 } from "@/types";
 
 // Backend modu - env'den oku
@@ -40,6 +41,8 @@ type StudyProgressAction =
   | { type: "ADD_EXAM"; payload: Exam }
   | { type: "DELETE_EXAM"; payload: string }
   | { type: "COMPLETE_EXAM"; payload: string }
+  | { type: "ADD_TOPIC_NOTE"; payload: TopicNote }
+  | { type: "DELETE_TOPIC_NOTE"; payload: string }
   | { type: "SET_LOADING"; payload: boolean };
 
 const initialState: StudyProgressState = {
@@ -49,6 +52,7 @@ const initialState: StudyProgressState = {
     monthly: {},
     customTasks: [],
     exams: [],
+    topicNotes: [],
   },
   isLoading: true,
 };
@@ -220,6 +224,32 @@ function progressReducer(
       };
     }
 
+    case "ADD_TOPIC_NOTE": {
+      const newProgress = { ...state.progress };
+      const topicNotes = [...(newProgress.topicNotes || []), action.payload];
+      return {
+        ...state,
+        progress: {
+          ...newProgress,
+          topicNotes,
+        },
+      };
+    }
+
+    case "DELETE_TOPIC_NOTE": {
+      const newProgress = { ...state.progress };
+      const topicNotes = (newProgress.topicNotes || []).filter(
+        (note) => note.id !== action.payload
+      );
+      return {
+        ...state,
+        progress: {
+          ...newProgress,
+          topicNotes,
+        },
+      };
+    }
+
     case "SET_LOADING":
       return {
         ...state,
@@ -246,6 +276,9 @@ interface StudyProgressContextValue {
   deleteExam: (examId: string) => void;
   completeExam: (examId: string) => void;
   getExams: (date?: Date | string) => Exam[];
+  addTopicNote: (topicId: string, subject: Subject, content: string) => Promise<void>;
+  deleteTopicNote: (noteId: string) => Promise<void>;
+  getTopicNotes: (topicId?: string) => TopicNote[];
 }
 
 const StudyProgressContext = createContext<StudyProgressContextValue | undefined>(undefined);
@@ -260,6 +293,10 @@ export function StudyProgressProvider({ children }: { children: React.ReactNode 
         if (USE_SUPABASE) {
           logger.log("Loading from Supabase...");
           const progress = await supabaseService.fetchAllProgress();
+          // Eski verilerde topicNotes olmayabilir
+          if (!progress.topicNotes) {
+            progress.topicNotes = [];
+          }
           dispatch({ type: "LOAD_PROGRESS", payload: progress });
         } else {
           const storedProgress = getOrInitializeProgress();
@@ -469,6 +506,54 @@ export function StudyProgressProvider({ children }: { children: React.ReactNode 
     [state.progress]
   );
 
+  const addTopicNote = useCallback(
+    async (topicId: string, subject: Subject, content: string) => {
+      const newNote: TopicNote = {
+        id: `note-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        topicId,
+        subject,
+        content,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      dispatch({ type: "ADD_TOPIC_NOTE", payload: newNote });
+
+      // Şimdilik LocalStorage kullanılıyor, Supabase tablosu eklendiğinde buraya kod eklenecek
+      if (USE_SUPABASE) {
+        try {
+          // await supabaseService.createTopicNote(topicId, subject, content);
+          logger.log("Topic note added (Supabase not implemented yet)");
+        } catch (error) {
+          logger.error("Add topic note error:", error);
+        }
+      }
+    },
+    []
+  );
+
+  const deleteTopicNote = useCallback(async (noteId: string) => {
+    dispatch({ type: "DELETE_TOPIC_NOTE", payload: noteId });
+
+    if (USE_SUPABASE) {
+      try {
+        // await supabaseService.deleteTopicNote(noteId);
+        logger.log("Topic note deleted (Supabase not implemented yet)");
+      } catch (error) {
+        logger.error("Delete topic note error:", error);
+      }
+    }
+  }, []);
+
+  const getTopicNotes = useCallback(
+    (topicId?: string): TopicNote[] => {
+      const notes = state.progress.topicNotes || [];
+      if (!topicId) return notes;
+      return notes.filter((note) => note.topicId === topicId);
+    },
+    [state.progress]
+  );
+
   const value: StudyProgressContextValue = useMemo(
     () => ({
       progress: state.progress,
@@ -485,6 +570,9 @@ export function StudyProgressProvider({ children }: { children: React.ReactNode 
       deleteExam,
       completeExam,
       getExams,
+      addTopicNote,
+      deleteTopicNote,
+      getTopicNotes,
     }),
     [
       state.progress,
@@ -501,6 +589,9 @@ export function StudyProgressProvider({ children }: { children: React.ReactNode 
       deleteExam,
       completeExam,
       getExams,
+      addTopicNote,
+      deleteTopicNote,
+      getTopicNotes,
     ]
   );
 
