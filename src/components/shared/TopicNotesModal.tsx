@@ -5,7 +5,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { cn } from "@/utils/cn";
 import { Button } from "./Button";
 import { Card } from "./Card";
@@ -21,6 +21,7 @@ interface TopicNotesModalProps {
   subject: Subject;
   notes: TopicNote[];
   onAddNote: (topicId: string, content: string) => Promise<void>;
+  onUpdateNote: (noteId: string, content: string) => Promise<void>;
   onDeleteNote: (noteId: string) => Promise<void>;
 }
 
@@ -31,17 +32,23 @@ export function TopicNotesModal({
   subject,
   notes,
   onAddNote,
+  onUpdateNote,
   onDeleteNote,
 }: TopicNotesModalProps) {
   const { showToast } = useToast();
   const [newNote, setNewNote] = useState("");
   const [isAdding, setIsAdding] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState("");
+  const [isUpdating, setIsUpdating] = useState(false);
 
   // Modal açıldığında formu temizle
   useEffect(() => {
     if (isOpen) {
       setNewNote("");
+      setEditingNoteId(null);
+      setEditContent("");
     }
   }, [isOpen]);
 
@@ -89,6 +96,35 @@ export function TopicNotesModal({
     }
   }, [topic, newNote, onAddNote, showToast]);
 
+  const handleEditNote = useCallback((note: TopicNote) => {
+    setEditingNoteId(note.id);
+    setEditContent(note.content);
+  }, []);
+
+  const handleCancelEdit = useCallback(() => {
+    setEditingNoteId(null);
+    setEditContent("");
+  }, []);
+
+  const handleSaveEdit = useCallback(async (noteId: string) => {
+    if (!editContent.trim()) {
+      showToast({ message: "Not boş olamaz.", type: "warning" });
+      return;
+    }
+
+    setIsUpdating(true);
+    try {
+      await onUpdateNote(noteId, editContent.trim());
+      setEditingNoteId(null);
+      setEditContent("");
+      showToast({ message: "Not güncellendi.", type: "success" });
+    } catch (error) {
+      showToast({ message: "Not güncellenirken bir hata oluştu.", type: "error" });
+    } finally {
+      setIsUpdating(false);
+    }
+  }, [editContent, onUpdateNote, showToast]);
+
   const handleDeleteNote = useCallback(async (noteId: string) => {
     setIsDeleting(noteId);
     try {
@@ -101,9 +137,15 @@ export function TopicNotesModal({
     }
   }, [onDeleteNote, showToast]);
 
-  if (!isOpen || !topic) return null;
+  // Topic notes'ları filtrele - early return'den önce (hook rules)
+  const topicNotes = useMemo(() => {
+    if (!topic) return [];
+    return notes.filter((note) => note.topicId === topic.id);
+  }, [notes, topic]);
 
-  const topicNotes = notes.filter((note) => note.topicId === topic.id);
+  if (!isOpen) return null;
+  
+  if (!topic) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
@@ -115,7 +157,7 @@ export function TopicNotesModal({
       />
 
       {/* Modal Card */}
-      <div className="relative z-10 w-full sm:max-w-[600px] bg-background-light dark:bg-background-dark rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col ring-1 ring-black/5 dark:ring-white/10 relative overflow-hidden max-h-[90vh]">
+      <div className="relative z-10 w-full sm:max-w-[600px] md:max-w-[700px] bg-background-light dark:bg-background-dark rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col ring-1 ring-black/5 dark:ring-white/10 relative overflow-hidden max-h-[90vh] sm:max-h-[85vh]">
         {/* Bottom Sheet Handle */}
         <div className="flex w-full items-center justify-center pt-3 pb-1">
           <div className="h-1.5 w-10 rounded-full bg-[#cfdbe7] dark:bg-slate-600" />
@@ -131,7 +173,7 @@ export function TopicNotesModal({
         </button>
 
         {/* Content */}
-        <div className="flex flex-col w-full pt-2 pb-8 overflow-y-auto px-6">
+        <div className="flex flex-col w-full pt-2 pb-8 overflow-y-auto px-4 sm:px-6">
           {/* Header */}
           <div className="text-center pt-4 pb-6">
             <div className="flex items-center justify-center gap-2 mb-2">
@@ -164,46 +206,106 @@ export function TopicNotesModal({
                 </div>
               </Card>
             ) : (
-              topicNotes.map((note) => (
-                <Card key={note.id} className="relative group">
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 mt-1">
-                      <span className="material-symbols-outlined text-text-sub dark:text-slate-400 text-xl">
-                        sticky_note_2
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-text-main dark:text-white whitespace-pre-wrap break-words">
-                        {note.content}
-                      </p>
-                      <p className="text-xs text-text-sub dark:text-slate-400 mt-2">
-                        {formatDate(note.createdAt, "d MMMM yyyy, HH:mm")}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => handleDeleteNote(note.id)}
-                      disabled={isDeleting === note.id}
-                      className={cn(
-                        "flex-shrink-0 p-2 rounded-lg transition-colors",
-                        "text-text-sub dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400",
-                        "hover:bg-red-50 dark:hover:bg-red-900/20",
-                        isDeleting === note.id && "opacity-50 cursor-not-allowed"
-                      )}
-                      aria-label="Notu sil"
-                    >
-                      {isDeleting === note.id ? (
-                        <span className="material-symbols-outlined text-sm animate-spin">
-                          hourglass_empty
-                        </span>
-                      ) : (
-                        <span className="material-symbols-outlined text-sm">
-                          delete_outline
-                        </span>
-                      )}
-                    </button>
-                  </div>
-                </Card>
-              ))
+              topicNotes.map((note) => {
+                const isEditing = editingNoteId === note.id;
+                
+                return (
+                  <Card key={note.id} className="relative group">
+                    {isEditing ? (
+                      // Edit Mode
+                      <div className="flex flex-col gap-3">
+                        <textarea
+                          value={editContent}
+                          onChange={(e) => setEditContent(e.target.value)}
+                          rows={4}
+                          className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-text-main dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all resize-none text-sm sm:text-base"
+                          placeholder="Notunuzu buraya yazın..."
+                          autoFocus
+                        />
+                        <div className="flex items-center justify-end gap-2 flex-wrap">
+                          <Button
+                            onClick={handleCancelEdit}
+                            variant="outline"
+                            size="sm"
+                            disabled={isUpdating}
+                            className="text-xs sm:text-sm"
+                          >
+                            İptal
+                          </Button>
+                          <Button
+                            onClick={() => handleSaveEdit(note.id)}
+                            variant="primary"
+                            size="sm"
+                            disabled={!editContent.trim() || isUpdating}
+                            icon={isUpdating ? "hourglass_empty" : "check"}
+                            className="text-xs sm:text-sm"
+                          >
+                            {isUpdating ? "Kaydediliyor..." : "Kaydet"}
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      // View Mode
+                      <div className="flex items-start gap-2 sm:gap-3">
+                        <div className="flex-shrink-0 mt-1">
+                          <span className="material-symbols-outlined text-text-sub dark:text-slate-400 text-lg sm:text-xl">
+                            sticky_note_2
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs sm:text-sm text-text-main dark:text-white whitespace-pre-wrap break-words">
+                            {note.content}
+                          </p>
+                          <p className="text-[10px] sm:text-xs text-text-sub dark:text-slate-400 mt-2">
+                            {formatDate(note.createdAt, "d MMMM yyyy, HH:mm")}
+                            {note.updatedAt !== note.createdAt && (
+                              <span className="ml-1 sm:ml-2 text-primary text-[10px] sm:text-xs">(Düzenlendi)</span>
+                            )}
+                          </p>
+                        </div>
+                        <div className="flex-shrink-0 flex items-center gap-0.5 sm:gap-1">
+                          <button
+                            onClick={() => handleEditNote(note)}
+                            disabled={isDeleting === note.id}
+                            className={cn(
+                              "p-1.5 sm:p-2 rounded-lg transition-colors",
+                              "text-text-sub dark:text-slate-400 hover:text-primary dark:hover:text-blue-400",
+                              "hover:bg-primary/10 dark:hover:bg-primary/20",
+                              isDeleting === note.id && "opacity-50 cursor-not-allowed"
+                            )}
+                            aria-label="Notu düzenle"
+                          >
+                            <span className="material-symbols-outlined text-base sm:text-sm">
+                              edit
+                            </span>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteNote(note.id)}
+                            disabled={isDeleting === note.id}
+                            className={cn(
+                              "p-1.5 sm:p-2 rounded-lg transition-colors",
+                              "text-text-sub dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400",
+                              "hover:bg-red-50 dark:hover:bg-red-900/20",
+                              isDeleting === note.id && "opacity-50 cursor-not-allowed"
+                            )}
+                            aria-label="Notu sil"
+                          >
+                            {isDeleting === note.id ? (
+                              <span className="material-symbols-outlined text-base sm:text-sm animate-spin">
+                                hourglass_empty
+                              </span>
+                            ) : (
+                              <span className="material-symbols-outlined text-base sm:text-sm">
+                                delete_outline
+                              </span>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </Card>
+                );
+              })
             )}
           </div>
 
@@ -217,7 +319,7 @@ export function TopicNotesModal({
               onChange={(e) => setNewNote(e.target.value)}
               placeholder="Bu konu hakkında notlarınızı buraya yazın..."
               rows={4}
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-text-main dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all resize-none"
+              className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-text-main dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all resize-none text-sm sm:text-base"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
                   e.preventDefault();
@@ -225,8 +327,8 @@ export function TopicNotesModal({
                 }
               }}
             />
-            <div className="flex items-center justify-between mt-3">
-              <p className="text-xs text-text-sub dark:text-slate-400">
+            <div className="flex items-center justify-between mt-3 flex-wrap gap-2">
+              <p className="text-[10px] sm:text-xs text-text-sub dark:text-slate-400">
                 {newNote.length} karakter
               </p>
               <Button
@@ -234,6 +336,8 @@ export function TopicNotesModal({
                 disabled={!newNote.trim() || isAdding}
                 variant="primary"
                 icon={isAdding ? "hourglass_empty" : "add"}
+                size="sm"
+                className="text-xs sm:text-sm"
               >
                 {isAdding ? "Ekleniyor..." : "Not Ekle"}
               </Button>

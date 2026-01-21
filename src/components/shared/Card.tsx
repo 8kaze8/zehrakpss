@@ -12,6 +12,7 @@ interface CardProps {
   padding?: "sm" | "md" | "lg";
   shadow?: "none" | "soft" | "md";
   className?: string;
+  onClick?: () => void;
 }
 
 const variantStyles = {
@@ -38,14 +39,17 @@ export function Card({
   padding = "md",
   shadow = "soft",
   className,
+  onClick,
 }: CardProps) {
   return (
     <div
+      onClick={onClick}
       className={cn(
         "rounded-2xl transition-all duration-200",
         variantStyles[variant],
         paddingStyles[padding],
         shadowStyles[shadow],
+        onClick && "cursor-pointer",
         className
       )}
     >

@@ -67,3 +67,12 @@ export interface ExamRow {
   results: string | null; // JSON
   created_at: string;
 }
+
+export interface TopicNoteRow {
+  id: string;
+  topic_id: string;
+  subject: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}

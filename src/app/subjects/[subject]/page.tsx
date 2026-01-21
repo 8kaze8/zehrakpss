@@ -31,6 +31,7 @@ export default function SubjectDetailPage() {
     completeTask, 
     uncompleteTask,
     addTopicNote,
+    updateTopicNote,
     deleteTopicNote,
     getTopicNotes,
   } = useStudyProgressContext();
@@ -103,8 +104,15 @@ export default function SubjectDetailPage() {
     await addTopicNote(topicId, subject, content);
   }, [subject, addTopicNote]);
 
-  // Tüm notları getir
-  const allNotes = useMemo(() => getTopicNotes(), [getTopicNotes]);
+  // Not güncelleme handler
+  const handleUpdateNote = useCallback(async (noteId: string, content: string) => {
+    await updateTopicNote(noteId, content);
+  }, [updateTopicNote]);
+
+  // Tüm notları getir - progress değiştiğinde yeniden hesapla
+  const allNotes = useMemo(() => {
+    return getTopicNotes();
+  }, [getTopicNotes, progress.topicNotes]);
 
   const validSubjects: Subject[] = ["TARİH", "COĞRAFYA", "MATEMATİK", "TÜRKÇE", "VATANDAŞLIK"];
   
@@ -323,18 +331,22 @@ export default function SubjectDetailPage() {
       </main>
 
       {/* Topic Notes Modal */}
-      <TopicNotesModal
-        isOpen={isNotesModalOpen}
-        onClose={() => {
-          setIsNotesModalOpen(false);
-          setSelectedTopic(null);
-        }}
-        topic={selectedTopic}
-        subject={subject}
-        notes={allNotes}
-        onAddNote={handleAddNote}
-        onDeleteNote={deleteTopicNote}
-      />
+      {selectedTopic && (
+        <TopicNotesModal
+          key={selectedTopic.id}
+          isOpen={isNotesModalOpen}
+          onClose={() => {
+            setIsNotesModalOpen(false);
+            setSelectedTopic(null);
+          }}
+          topic={selectedTopic}
+          subject={subject}
+          notes={allNotes}
+          onAddNote={handleAddNote}
+          onUpdateNote={handleUpdateNote}
+          onDeleteNote={deleteTopicNote}
+        />
+      )}
     </>
   );
 }

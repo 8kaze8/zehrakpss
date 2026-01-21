@@ -3,7 +3,7 @@
  * CRUD operations for study progress
  */
 
-import { getSupabase, type DailyProgressRow, type CustomTaskRow, type ExamRow } from "@/lib/supabase";
+import { getSupabase, type DailyProgressRow, type CustomTaskRow, type ExamRow, type TopicNoteRow } from "@/lib/supabase";
 import type { UserProgress, TaskCompletion, DailyProgress, CustomTask, Exam, Subject, TopicNote } from "@/types";
 import { logger } from "@/utils/logger";
 
@@ -305,6 +305,62 @@ export async function completeExam(examId: string): Promise<void> {
 }
 
 /**
+ * Exam güncelle
+ */
+export async function updateExam(
+  examId: string,
+  updates: {
+    completed?: boolean;
+    results?: {
+      turkce?: ExamResult;
+      matematik?: ExamResult;
+      tarih?: ExamResult;
+      cografya?: ExamResult;
+      vatandaslik?: ExamResult;
+      total?: ExamResult;
+    };
+  }
+): Promise<Exam> {
+  const supabase = getSupabase();
+  if (!supabase) {
+    throw new Error("Supabase not available");
+  }
+
+  const updateData: any = {};
+  if (updates.completed !== undefined) {
+    updateData.completed = updates.completed;
+  }
+  if (updates.results !== undefined) {
+    updateData.results = updates.results ? JSON.stringify(updates.results) : null;
+    // Eğer results varsa completed'i true yap
+    if (updates.results) {
+      updateData.completed = true;
+    }
+  }
+
+  const { data, error } = await supabase
+    .from("exams")
+    .update(updateData)
+    .eq("id", examId)
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  const row = data as ExamRow;
+  return {
+    id: row.id,
+    title: row.title,
+    type: row.type as "branch" | "general" | "tg",
+    subject: row.subject as Subject | undefined,
+    date: row.date,
+    completed: row.completed,
+    results: row.results ? JSON.parse(row.results) : undefined,
+    createdAt: row.created_at,
+  };
+}
+
+/**
  * Tüm topic notlarını getir
  */
 export async function fetchTopicNotes(): Promise<TopicNote[]> {
@@ -316,9 +372,21 @@ export async function fetchTopicNotes(): Promise<TopicNote[]> {
   }
 
   try {
-    // Şimdilik topic_notes tablosu yok, LocalStorage kullanılacak
-    // Gelecekte Supabase tablosu eklendiğinde buraya kod eklenecek
-    return [];
+    const { data, error } = await supabase
+      .from("topic_notes")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+
+    return (data as TopicNoteRow[] || []).map((row) => ({
+      id: row.id,
+      topicId: row.topic_id,
+      subject: row.subject as Subject,
+      content: row.content,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    }));
   } catch (error) {
     logger.error("Fetch topic notes error:", error);
     return [];
@@ -336,12 +404,63 @@ export async function createTopicNote(
   const supabase = getSupabase();
   
   if (!supabase) {
-    // LocalStorage kullanılacak, bu fonksiyon context'te handle edilecek
-    throw new Error("Supabase not available, use LocalStorage");
+    throw new Error("Supabase not available");
   }
 
-  // Gelecekte Supabase tablosu eklendiğinde buraya kod eklenecek
-  throw new Error("Not implemented yet");
+  const { data, error } = await supabase
+    .from("topic_notes")
+    .insert({
+      topic_id: topicId,
+      subject: subject,
+      content: content,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  const row = data as TopicNoteRow;
+  return {
+    id: row.id,
+    topicId: row.topic_id,
+    subject: row.subject as Subject,
+    content: row.content,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+/**
+ * Topic notu güncelle
+ */
+export async function updateTopicNote(
+  noteId: string,
+  content: string
+): Promise<TopicNote> {
+  const supabase = getSupabase();
+  
+  if (!supabase) {
+    throw new Error("Supabase not available");
+  }
+
+  const { data, error } = await supabase
+    .from("topic_notes")
+    .update({ content })
+    .eq("id", noteId)
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  const row = data as TopicNoteRow;
+  return {
+    id: row.id,
+    topicId: row.topic_id,
+    subject: row.subject as Subject,
+    content: row.content,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
 }
 
 /**
@@ -355,6 +474,10 @@ export async function deleteTopicNote(noteId: string): Promise<void> {
     return;
   }
 
-  // Gelecekte Supabase tablosu eklendiğinde buraya kod eklenecek
-  throw new Error("Not implemented yet");
+  const { error } = await supabase
+    .from("topic_notes")
+    .delete()
+    .eq("id", noteId);
+
+  if (error) throw error;
 }

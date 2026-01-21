@@ -39,9 +39,11 @@ type StudyProgressAction =
   | { type: "DELETE_CUSTOM_TASK"; payload: string }
   | { type: "TOGGLE_CUSTOM_TASK"; payload: { taskId: string; date: string } }
   | { type: "ADD_EXAM"; payload: Exam }
+  | { type: "UPDATE_EXAM"; payload: Exam }
   | { type: "DELETE_EXAM"; payload: string }
   | { type: "COMPLETE_EXAM"; payload: string }
   | { type: "ADD_TOPIC_NOTE"; payload: TopicNote }
+  | { type: "UPDATE_TOPIC_NOTE"; payload: TopicNote }
   | { type: "DELETE_TOPIC_NOTE"; payload: string }
   | { type: "SET_LOADING"; payload: boolean };
 
@@ -194,6 +196,20 @@ function progressReducer(
       };
     }
 
+    case "UPDATE_EXAM": {
+      const newProgress = { ...state.progress };
+      const exams = (newProgress.exams || []).map((exam) =>
+        exam.id === action.payload.id ? action.payload : exam
+      );
+      return {
+        ...state,
+        progress: {
+          ...newProgress,
+          exams,
+        },
+      };
+    }
+
     case "DELETE_EXAM": {
       const newProgress = { ...state.progress };
       const exams = (newProgress.exams || []).filter(
@@ -227,6 +243,20 @@ function progressReducer(
     case "ADD_TOPIC_NOTE": {
       const newProgress = { ...state.progress };
       const topicNotes = [...(newProgress.topicNotes || []), action.payload];
+      return {
+        ...state,
+        progress: {
+          ...newProgress,
+          topicNotes,
+        },
+      };
+    }
+
+    case "UPDATE_TOPIC_NOTE": {
+      const newProgress = { ...state.progress };
+      const topicNotes = (newProgress.topicNotes || []).map((note) =>
+        note.id === action.payload.id ? action.payload : note
+      );
       return {
         ...state,
         progress: {
@@ -273,10 +303,12 @@ interface StudyProgressContextValue {
   deleteCustomTask: (taskId: string) => void;
   getCustomTasks: (date?: Date | string) => CustomTask[];
   addExam: (exam: Omit<Exam, "id" | "createdAt" | "completed">) => void;
+  updateExam: (examId: string, updates: { completed?: boolean; results?: Exam["results"] }) => Promise<void>;
   deleteExam: (examId: string) => void;
   completeExam: (examId: string) => void;
   getExams: (date?: Date | string) => Exam[];
   addTopicNote: (topicId: string, subject: Subject, content: string) => Promise<void>;
+  updateTopicNote: (noteId: string, content: string) => Promise<void>;
   deleteTopicNote: (noteId: string) => Promise<void>;
   getTopicNotes: (topicId?: string) => TopicNote[];
 }
@@ -293,10 +325,9 @@ export function StudyProgressProvider({ children }: { children: React.ReactNode 
         if (USE_SUPABASE) {
           logger.log("Loading from Supabase...");
           const progress = await supabaseService.fetchAllProgress();
-          // Eski verilerde topicNotes olmayabilir
-          if (!progress.topicNotes) {
-            progress.topicNotes = [];
-          }
+          // Topic notes'ları ayrı yükle
+          const topicNotes = await supabaseService.fetchTopicNotes();
+          progress.topicNotes = topicNotes;
           dispatch({ type: "LOAD_PROGRESS", payload: progress });
         } else {
           const storedProgress = getOrInitializeProgress();
@@ -314,13 +345,17 @@ export function StudyProgressProvider({ children }: { children: React.ReactNode 
 
   // Save to localStorage when not using Supabase
   useEffect(() => {
-    if (!state.isLoading && !USE_SUPABASE) {
-      const timeoutId = setTimeout(() => {
-        saveStoredProgress(state.progress);
-      }, 500);
-      return () => clearTimeout(timeoutId);
-    }
-  }, [state.progress, state.isLoading]);
+    if (state.isLoading || USE_SUPABASE) return;
+    
+    // Hemen kaydet - debounce yok
+    saveStoredProgress(state.progress);
+  }, [
+    state.progress.topicNotes,
+    state.progress.daily,
+    state.progress.customTasks,
+    state.progress.exams,
+    state.isLoading
+  ]);
 
   const completeTask = useCallback(async (taskId: string, date: Date | string = new Date()) => {
     const dateISO = toISODate(date);
@@ -471,6 +506,31 @@ export function StudyProgressProvider({ children }: { children: React.ReactNode 
     []
   );
 
+  const updateExam = useCallback(
+    async (examId: string, updates: { completed?: boolean; results?: Exam["results"] }) => {
+      if (USE_SUPABASE) {
+        try {
+          const updatedExam = await supabaseService.updateExam(examId, updates);
+          dispatch({ type: "UPDATE_EXAM", payload: updatedExam });
+        } catch (error) {
+          logger.error("Update exam error:", error);
+          throw error;
+        }
+      } else {
+        const existingExam = state.progress.exams?.find((e) => e.id === examId);
+        if (existingExam) {
+          const updatedExam: Exam = {
+            ...existingExam,
+            completed: updates.completed !== undefined ? updates.completed : existingExam.completed,
+            results: updates.results !== undefined ? updates.results : existingExam.results,
+          };
+          dispatch({ type: "UPDATE_EXAM", payload: updatedExam });
+        }
+      }
+    },
+    [state.progress]
+  );
+
   const deleteExam = useCallback(async (examId: string) => {
     dispatch({ type: "DELETE_EXAM", payload: examId });
 
@@ -508,28 +568,52 @@ export function StudyProgressProvider({ children }: { children: React.ReactNode 
 
   const addTopicNote = useCallback(
     async (topicId: string, subject: Subject, content: string) => {
-      const newNote: TopicNote = {
-        id: `note-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        topicId,
-        subject,
-        content,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-
-      dispatch({ type: "ADD_TOPIC_NOTE", payload: newNote });
-
-      // Şimdilik LocalStorage kullanılıyor, Supabase tablosu eklendiğinde buraya kod eklenecek
       if (USE_SUPABASE) {
         try {
-          // await supabaseService.createTopicNote(topicId, subject, content);
-          logger.log("Topic note added (Supabase not implemented yet)");
+          const newNote = await supabaseService.createTopicNote(topicId, subject, content);
+          dispatch({ type: "ADD_TOPIC_NOTE", payload: newNote });
         } catch (error) {
           logger.error("Add topic note error:", error);
+          throw error;
         }
+      } else {
+        const newNote: TopicNote = {
+          id: `note-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          topicId,
+          subject,
+          content,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        dispatch({ type: "ADD_TOPIC_NOTE", payload: newNote });
       }
     },
     []
+  );
+
+  const updateTopicNote = useCallback(
+    async (noteId: string, content: string) => {
+      if (USE_SUPABASE) {
+        try {
+          const updatedNote = await supabaseService.updateTopicNote(noteId, content);
+          dispatch({ type: "UPDATE_TOPIC_NOTE", payload: updatedNote });
+        } catch (error) {
+          logger.error("Update topic note error:", error);
+          throw error;
+        }
+      } else {
+        const existingNote = state.progress.topicNotes?.find((n) => n.id === noteId);
+        if (existingNote) {
+          const updatedNote: TopicNote = {
+            ...existingNote,
+            content,
+            updatedAt: new Date().toISOString(),
+          };
+          dispatch({ type: "UPDATE_TOPIC_NOTE", payload: updatedNote });
+        }
+      }
+    },
+    [state.progress]
   );
 
   const deleteTopicNote = useCallback(async (noteId: string) => {
@@ -537,10 +621,10 @@ export function StudyProgressProvider({ children }: { children: React.ReactNode 
 
     if (USE_SUPABASE) {
       try {
-        // await supabaseService.deleteTopicNote(noteId);
-        logger.log("Topic note deleted (Supabase not implemented yet)");
+        await supabaseService.deleteTopicNote(noteId);
       } catch (error) {
         logger.error("Delete topic note error:", error);
+        throw error;
       }
     }
   }, []);
@@ -551,7 +635,7 @@ export function StudyProgressProvider({ children }: { children: React.ReactNode 
       if (!topicId) return notes;
       return notes.filter((note) => note.topicId === topicId);
     },
-    [state.progress]
+    [state.progress.topicNotes]
   );
 
   const value: StudyProgressContextValue = useMemo(
@@ -567,10 +651,12 @@ export function StudyProgressProvider({ children }: { children: React.ReactNode 
       deleteCustomTask,
       getCustomTasks,
       addExam,
+      updateExam,
       deleteExam,
       completeExam,
       getExams,
       addTopicNote,
+      updateTopicNote,
       deleteTopicNote,
       getTopicNotes,
     }),
@@ -586,10 +672,12 @@ export function StudyProgressProvider({ children }: { children: React.ReactNode 
       deleteCustomTask,
       getCustomTasks,
       addExam,
+      updateExam,
       deleteExam,
       completeExam,
       getExams,
       addTopicNote,
+      updateTopicNote,
       deleteTopicNote,
       getTopicNotes,
     ]

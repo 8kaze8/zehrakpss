@@ -12,6 +12,7 @@ import { MonthlyGoalWidget } from "@/components/dashboard/MonthlyGoalWidget";
 import { WeeklyGoalCard } from "@/components/dashboard/WeeklyGoalCard";
 import { DailyRoutineCard } from "@/components/dashboard/DailyRoutineCard";
 import { SubjectFocusCard } from "@/components/dashboard/SubjectFocusCard";
+import { ExamHistoryCard } from "@/components/dashboard/ExamHistoryCard";
 import { FloatingActionButton } from "@/components/layout/FloatingActionButton";
 import { AddTaskModal } from "@/components/shared/AddTaskModal";
 import { AddExamModal } from "@/components/shared/AddExamModal";
@@ -89,6 +90,7 @@ export default function DashboardPage() {
         <MonthlyGoalWidget />
         <DailyRoutineCard />
         <SubjectFocusCard />
+        <ExamHistoryCard />
       </main>
       <FloatingActionButton
         expandable
